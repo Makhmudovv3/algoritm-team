@@ -1,5 +1,7 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function MainLayout() {
   return (
@@ -43,10 +45,11 @@ export default function MainLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 relative">
           <Outlet />
         </main>
       </div>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
     </div>
   );
 }
