@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export default function PaymentModal({
   isOpen,
@@ -61,9 +62,8 @@ export default function PaymentModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700  mb-1">To'lov sanasi</label>
-          <Input 
+          <CustomDatePicker 
             required 
-            type="date" 
             value={formData.date} 
             onChange={e => setFormData({...formData, date: e.target.value})} 
           />

@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { EmptyTableState, AvatarInitials } from '@/components/ui/page-header';
 import { History, CheckCircle2, XCircle, AlertCircle, Calendar } from 'lucide-react';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export default function StudentAttendanceHistory({ attendances, students, groups, isLoading }) {
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -69,21 +70,21 @@ export default function StudentAttendanceHistory({ attendances, students, groups
               />
             </div>
             <div className="flex gap-2 items-center">
-              <input 
-                type="date"
-                value={dateRange.start}
-                onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}
-                className="h-9 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none w-36 bg-white"
-                placeholder="Dan"
-              />
+              <div className="w-36">
+                <CustomDatePicker 
+                  value={dateRange.start}
+                  onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}
+                  placeholder="Dan"
+                />
+              </div>
               <span className="text-slate-400">-</span>
-              <input 
-                type="date"
-                value={dateRange.end}
-                onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}
-                className="h-9 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none w-36 bg-white"
-                placeholder="Gacha"
-              />
+              <div className="w-36">
+                <CustomDatePicker 
+                  value={dateRange.end}
+                  onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}
+                  placeholder="Gacha"
+                />
+              </div>
             </div>
           </div>
         </div>

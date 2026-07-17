@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export function GroupFormModal({ 
   isOpen, 
@@ -96,11 +97,11 @@ export function GroupFormModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700  mb-1">Boshlanish sanasi</label>
-                <Input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
+                <CustomDatePicker value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700  mb-1">Tugash sanasi</label>
-                <Input type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} />
+                <CustomDatePicker value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} />
               </div>
             </div>
           </div>

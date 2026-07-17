@@ -9,6 +9,7 @@ import { StudentsFilters } from './components/StudentsFilters';
 import { StudentsTable } from './components/StudentsTable';
 import { StudentProfileDrawer } from './components/StudentProfileDrawer';
 import { StudentFormModal } from './components/StudentFormModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import { StudentDeleteDialog } from './components/StudentDeleteDialog';
 import AlertModal from '@/components/AlertModal';
 
@@ -277,7 +278,7 @@ export default function Students() {
         branchOptions={branchOptions} parentOptions={parentOptions}
       />
 
-      <StudentDeleteDialog 
+      <ConfirmModal 
         isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} onConfirm={handleDeleteConfirm} 
       />
 

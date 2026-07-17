@@ -53,7 +53,7 @@ const Select = React.forwardRef(({
   const selectedOption = options.find(opt => String(opt.value) === String(value));
 
   return (
-    <div className="w-full space-y-1">
+    <div className={cn("w-full space-y-1", className)}>
       {label && (
         <label htmlFor={selectId} className="block text-[12px] font-medium text-slate-600">
           {label}
@@ -74,8 +74,7 @@ const Select = React.forwardRef(({
             "flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50",
             hasError 
               ? "border-red-400 focus-visible:ring-red-400/20 focus:border-red-400" 
-              : "hover:border-slate-300",
-            className
+              : "hover:border-slate-300"
           )}
           {...props}
         >
