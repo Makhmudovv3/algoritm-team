@@ -60,13 +60,13 @@ export default function TeachersTable({ teachers, getUserName, getBranchName, on
                 </TableCell>
                 <TableCell className="pr-3" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-slate-700" onClick={() => onEdit(t)}>
+                    <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" onClick={() => onEdit(t)}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(t.id)}>
+                    <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/20 dark:hover:text-red-400" onClick={() => onDelete(t.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-slate-700" onClick={() => onViewProfile(t)}>
+                    <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" onClick={() => onViewProfile(t)}>
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
                   </div>

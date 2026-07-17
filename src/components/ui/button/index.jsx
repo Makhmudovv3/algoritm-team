@@ -11,20 +11,21 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
+          "bg-blue-600 text-white hover:bg-blue-700 shadow-sm dark:bg-blue-600 dark:hover:bg-blue-700",
         primary:
-          "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
+          "bg-blue-600 text-white hover:bg-blue-700 shadow-sm dark:bg-blue-600 dark:hover:bg-blue-700",
         destructive:
-          "bg-red-500 text-white shadow-sm hover:bg-red-600",
+          "bg-red-500 text-white shadow-sm hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700",
         outline:
-          "border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-sm",
+          "border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-300 dark:hover:text-white",
         secondary:
-          "bg-slate-100 text-slate-700 hover:bg-slate-200",
+          "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700",
         ghost:
-          "hover:bg-slate-100 hover:text-slate-900 text-slate-600",
+          "hover:bg-slate-100 hover:text-slate-900 text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:text-slate-400",
         link:
-          "text-blue-600 underline-offset-4 hover:underline",
+          "text-blue-600 underline-offset-4 hover:underline dark:text-blue-400",
         danger:
-          "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200",
+          "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:border-red-500/20",
       },
       size: {
         default: "h-8 px-3.5 py-1.5",

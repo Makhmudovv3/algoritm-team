@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/services/api';
+import { Modal } from '@/components/ui/modal';
 
 const NAVIGATION = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -60,6 +61,7 @@ const NAVIGATION = [
 export default function Sidebar({ isOpen, isMobile, isCollapsed, setIsCollapsed }) {
   const location = useLocation();
   const [user, setUser] = useState(null);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState(() => {
     const active = NAVIGATION.find(item =>
       item.children?.some(c => location.pathname.startsWith(c.path))
@@ -249,6 +251,7 @@ export default function Sidebar({ isOpen, isMobile, isCollapsed, setIsCollapsed 
           </NavLink>
         ))}
         <button
+          onClick={() => setIsLogoutModalOpen(true)}
           className="w-full flex items-center gap-3 rounded-md px-2 py-2 text-[14px] text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-150"
           title={collapsed ? 'Logout' : undefined}
         >
@@ -273,6 +276,33 @@ export default function Sidebar({ isOpen, isMobile, isCollapsed, setIsCollapsed 
           </div>
         )}
       </div>
+
+      {/* Logout Modal */}
+      <Modal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        title="Tizimdan chiqish"
+      >
+        <div className="space-y-4">
+          <p className="text-[15px] text-slate-600 dark:text-slate-400">
+            Haqiqatan ham tizimdan chiqishni xohlaysizmi?
+          </p>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => setIsLogoutModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              Bekor qilish
+            </button>
+            <button
+              onClick={() => window.location.href = '/login'}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm shadow-red-600/20"
+            >
+              Chiqish
+            </button>
+          </div>
+        </div>
+      </Modal>
     </motion.aside>
   );
 }

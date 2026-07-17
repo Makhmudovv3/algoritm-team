@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-border: hsl(var(--border));
@@ -79,7 +80,95 @@
     --radius: 0.5rem; /* Soft rounded corners */
   }
 
+  .dark {
+    --background: 222 47% 7%; /* 950 shade */
+    --foreground: 210 40% 98%;
 
+    --card: 222 47% 11%; /* 900 shade */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 0 0% 98%;
+
+    --border: 215 27.9% 16.9%; /* slate-800 equivalent */
+    --input: 215 27.9% 16.9%;
+    
+    --ring: 217.2 91.2% 59.8%;
+  }
+}
+
+/* Premium Dark Mode Global Class Overrides 
+   This seamlessly converts static Tailwind classes to Dark Mode without modifying every file. */
+.dark .bg-white {
+  background-color: hsl(var(--card)) !important;
+}
+
+.dark .bg-gray-50, 
+.dark .bg-slate-50,
+.dark .bg-slate-100 {
+  background-color: hsl(var(--background)) !important;
+}
+
+.dark .bg-slate-50\/50,
+.dark .bg-gray-50\/50,
+.dark .bg-slate-100\/50 {
+  background-color: hsl(var(--muted) / 0.3) !important;
+}
+
+.dark .bg-slate-200,
+.dark .bg-gray-200 {
+  background-color: hsl(var(--border)) !important;
+}
+
+.dark .text-slate-900,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-slate-800 {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-gray-700 {
+  color: hsl(var(--foreground)) !important;
+  opacity: 0.9;
+}
+
+.dark .text-slate-600,
+.dark .text-gray-600,
+.dark .text-slate-500,
+.dark .text-gray-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .border-slate-200,
+.dark .border-gray-200,
+.dark .border-slate-100 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-200:hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
 }
 
 @layer base {

@@ -1,6 +1,10 @@
 import React from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
+
+export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Ha, o'chirish", confirmColor = "bg-red-600 hover:bg-red-700" }) {
+  if (!isOpen) return null;
 
 export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText }) {
   return (
@@ -27,6 +31,13 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
               className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
             >
               <X size={18} />
+              onClick={() => {
+                onConfirm();
+                onClose();
+              }} 
+              className={`flex-1 px-4 py-2.5 text-white ${confirmColor} rounded-xl font-semibold transition-colors shadow-sm cursor-pointer`}
+            >
+              {confirmText}
             </button>
             
             <div className="flex flex-col items-center text-center p-6 pt-8">

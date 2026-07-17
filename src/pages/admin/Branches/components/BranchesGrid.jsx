@@ -26,7 +26,7 @@ export default function BranchesGrid({
             placeholder="Filial nomi orqali qidiring..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-[13px] bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 text-[13px] text-slate-900 placeholder:text-slate-400 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
           />
         </div>
       </div>

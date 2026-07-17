@@ -8,21 +8,21 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-slate-100 text-slate-600 border border-slate-200",
+          "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
         neutral:
-          "bg-slate-100 text-slate-600 border border-slate-200",
+          "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
         success:
-          "bg-emerald-50 text-emerald-700 border border-emerald-200",
+          "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
         warning:
-          "bg-amber-50 text-amber-700 border border-amber-200",
+          "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
         danger:
-          "bg-red-50 text-red-600 border border-red-200",
+          "bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
         info:
-          "bg-blue-50 text-blue-700 border border-blue-200",
+          "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
         outline:
-          "bg-transparent text-slate-600 border border-slate-200",
+          "bg-transparent text-slate-600 border border-slate-200 dark:text-slate-300 dark:border-slate-700",
         purple:
-          "bg-violet-50 text-violet-700 border border-violet-200",
+          "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20",
       },
     },
     defaultVariants: {
