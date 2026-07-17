@@ -14,7 +14,7 @@ export function GroupCard({ group, teacherName, courseName, roomName, onView, on
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-150 cursor-pointer group overflow-hidden"
+      className="bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-150 cursor-pointer group"
       onClick={() => onView(group)}
     >
       {/* Header */}
@@ -65,7 +65,11 @@ export function GroupCard({ group, teacherName, courseName, roomName, onView, on
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
             <Calendar className="h-3 w-3 flex-shrink-0" />
-            <span>Dush · Chor · Jum</span>
+            <span>{
+              group.days === '2-4-6' ? 'Sesh · Pay · Shan' :
+              group.days === 'everyday' ? 'Har kuni' :
+              'Dush · Chor · Jum'
+            }</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
             <Clock className="h-3 w-3 flex-shrink-0" />
@@ -75,7 +79,7 @@ export function GroupCard({ group, teacherName, courseName, roomName, onView, on
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 bg-slate-50/50">
+      <div className="px-4 py-3 bg-slate-50/50 rounded-b-xl">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[11px] text-slate-400 flex items-center gap-1">
             <Users className="h-3 w-3" /> O'quvchilar
@@ -87,10 +91,7 @@ export function GroupCard({ group, teacherName, courseName, roomName, onView, on
         <div className="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
           <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
         </div>
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-[12px] font-semibold text-slate-700">
-            {new Intl.NumberFormat('uz-UZ').format(group.price)}<span className="text-[10px] text-slate-400 ml-1">UZS</span>
-          </span>
+        <div className="mt-3 flex items-center justify-end">
           <Badge variant={group.is_active ? 'success' : 'danger'}>
             {group.is_active ? 'Faol' : 'Nofaol'}
           </Badge>

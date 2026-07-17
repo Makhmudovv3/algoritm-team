@@ -52,6 +52,11 @@ export function StudentsTableRow({
         {student.phone}
       </TableCell>
 
+      {/* Password */}
+      <TableCell className="text-[13px] text-slate-500 font-mono" onClick={e => e.stopPropagation()}>
+        {student.phone?.replace(/\D/g, '').slice(-4) || '1234'}
+      </TableCell>
+
       {/* Branch */}
       <TableCell className="text-[13px] text-slate-600" onClick={e => e.stopPropagation()}>
         {branchName}

@@ -26,6 +26,7 @@ export function StudentsTable({
             </TableHead>
             <TableHead>O'quvchi</TableHead>
             <TableHead>Telefon</TableHead>
+            <TableHead>Parol</TableHead>
             <TableHead>Filial</TableHead>
             <TableHead>Ota-ona</TableHead>
             <TableHead>Status</TableHead>
@@ -37,7 +38,7 @@ export function StudentsTable({
             <TableLoadingSkeleton cols={7} rows={7} />
           ) : students.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="p-0">
+              <TableCell colSpan={8} className="p-0">
                 <EmptyTableState
                   title="O'quvchilar topilmadi"
                   description="Filtr yoki qidiruv so'rovini o'zgartiring."

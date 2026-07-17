@@ -35,7 +35,7 @@ export default function Groups() {
   const [viewingGroup, setViewingGroup] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  const initialForm = { name: '', course_id: '', teacher_id: '', room_id: '', start_date: '', end_date: '', price: '', is_active: 'true' };
+  const initialForm = { name: '', course_id: '', teacher_id: '', room_id: '', start_date: '', end_date: '', price: '', is_active: 'true', days: '1-3-5' };
   const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => {
@@ -99,6 +99,41 @@ export default function Groups() {
       } else {
         const created = await api.Groups.create(payload);
         setGroups([...groups, created]);
+
+        // Auto-generate schedules
+        const daysMapping = { '1-3-5': [1, 3, 5], '2-4-6': [2, 4, 6], 'everyday': [1, 2, 3, 4, 5, 6] };
+        const selectedDays = daysMapping[formData.days] || [1, 3, 5];
+        
+        for (const d of selectedDays) {
+          await api.Schedules.create({
+            group_id: created.id,
+            room_id: created.room_id,
+            day_of_week: d,
+            start_time: '14:00',
+            end_time: '16:00'
+          });
+        }
+
+        // Auto-generate lessons for the first month (12 lessons max)
+        const startDate = formData.start_date ? new Date(formData.start_date) : new Date();
+        const dates = [];
+        let curDate = new Date(startDate);
+        while (dates.length < 12) {
+          const jsDay = curDate.getDay() === 0 ? 7 : curDate.getDay();
+          if (selectedDays.includes(jsDay)) {
+            dates.push(new Date(curDate));
+          }
+          curDate.setDate(curDate.getDate() + 1);
+        }
+
+        for (let i = 0; i < dates.length; i++) {
+          await api.Lessons.create({
+            group_id: created.id,
+            date: dates[i].toISOString().split('T')[0],
+            status: 'scheduled',
+            topic: `${i + 1}-dars`
+          });
+        }
       }
       setIsFormOpen(false);
     } catch(err) { console.error(err); }
@@ -204,7 +239,7 @@ export default function Groups() {
         <GroupsTable groups={filteredGroups} teachers={teachers} courses={courses} rooms={rooms} users={users} onView={setViewingGroup} onEdit={handleOpenForm} onDelete={setDeleteConfirmId} />
       )}
 
-      <GroupProfileDrawer group={viewingGroup} teacherName={viewingGroup ? getTeacherName(viewingGroup.teacher_id) : ''} courseName={viewingGroup ? getCourseName(viewingGroup.course_id) : ''} roomName={viewingGroup ? getRoomName(viewingGroup.room_id) : ''} isOpen={!!viewingGroup} onClose={() => setViewingGroup(null)} onEdit={handleOpenForm} />
+      <GroupProfileDrawer group={viewingGroup} teacherName={viewingGroup ? getTeacherName(viewingGroup.teacher_id) : ''} courseName={viewingGroup ? getCourseName(viewingGroup.course_id) : ''} roomName={viewingGroup ? getRoomName(viewingGroup.room_id) : ''} isOpen={!!viewingGroup} onClose={() => setViewingGroup(null)} onEdit={handleOpenForm} onDelete={setDeleteConfirmId} />
       <GroupFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} editingId={editingId} formData={formData} setFormData={setFormData} handleSave={handleSave} courseOptions={courseOptions} teacherOptions={teacherOptions} roomOptions={roomOptions} />
       <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?" maxWidth="max-w-md">
         <div className="space-y-4">

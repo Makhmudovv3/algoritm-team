@@ -13,6 +13,8 @@ const Select = React.forwardRef(({
   error = false,
   isLoading = false,
   searchable = false,
+  creatable = false,
+  onCreate,
   id,
   label,
   required,
@@ -46,9 +48,19 @@ const Select = React.forwardRef(({
     setIsOpen(false);
   };
 
+  const handleCreate = () => {
+    if (onCreate && searchQuery.trim()) {
+      onCreate(searchQuery.trim());
+      setIsOpen(false);
+    }
+  };
+
   const filteredOptions = searchable 
     ? options.filter(opt => opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
     : options;
+
+  const showCreateOption = creatable && searchQuery.trim().length > 0 && 
+    !options.some(opt => opt.label.toLowerCase() === searchQuery.trim().toLowerCase());
 
   const selectedOption = options.find(opt => String(opt.value) === String(value));
 
@@ -104,7 +116,7 @@ const Select = React.forwardRef(({
                 <Search className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Qidirish yoki kiritish..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex w-full bg-transparent text-sm outline-none placeholder:text-slate-400 "
@@ -116,8 +128,8 @@ const Select = React.forwardRef(({
               role="listbox"
               className="max-h-[200px] overflow-auto premium-scrollbar p-1"
             >
-              {filteredOptions.length === 0 ? (
-                <li className="py-6 text-center text-sm text-slate-500">No results found.</li>
+              {filteredOptions.length === 0 && !showCreateOption ? (
+                <li className="py-6 text-center text-sm text-slate-500">Hech narsa topilmadi.</li>
               ) : (
                 filteredOptions.map((option) => (
                   <li
@@ -134,6 +146,15 @@ const Select = React.forwardRef(({
                     {String(value) === String(option.value) && <Check className="h-4 w-4" />}
                   </li>
                 ))
+              )}
+              {showCreateOption && (
+                <li
+                  role="option"
+                  onClick={handleCreate}
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors mt-1 border-t border-slate-100"
+                >
+                  <span className="flex-1 truncate">Yangi qo'shish: "{searchQuery.trim()}"</span>
+                </li>
               )}
             </ul>
           </motion.div>

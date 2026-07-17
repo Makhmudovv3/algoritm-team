@@ -4,11 +4,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
+const sizeClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
+  '6xl': 'max-w-6xl',
+  '7xl': 'max-w-7xl',
+  full: 'max-w-full'
+};
+
 const Drawer = ({
   isOpen,
   onClose,
   children,
   side = "right",
+  size = "sm",
   className,
   closeOnOutsideClick = true,
 }) => {
@@ -66,7 +81,8 @@ const Drawer = ({
             role="dialog"
             aria-modal="true"
             className={cn(
-              "relative flex h-full w-full max-w-sm flex-col bg-white shadow-xl  ",
+              "relative flex h-full w-full flex-col bg-white shadow-xl  ",
+              sizeClasses[size] || "max-w-sm",
               side === 'right' ? "border-l" : "border-r",
               className
             )}

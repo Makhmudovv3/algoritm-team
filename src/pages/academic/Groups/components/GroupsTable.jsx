@@ -34,7 +34,7 @@ export function GroupsTable({ groups, teachers, courses, rooms, users, onView, o
             <TableHead className="pl-4">Guruh</TableHead>
             <TableHead>Kurs / O'qituvchi</TableHead>
             <TableHead>Xona</TableHead>
-            <TableHead>Narx</TableHead>
+
             <TableHead>Muddat</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-12" />
@@ -59,9 +59,7 @@ export function GroupsTable({ groups, teachers, courses, rooms, users, onView, o
                 <p className="text-[11px] text-slate-400">{getTeacherName(g.teacher_id)}</p>
               </TableCell>
               <TableCell className="text-[13px] text-slate-500">{getRoomName(g.room_id)}</TableCell>
-              <TableCell className="text-[13px] font-medium text-slate-700">
-                {new Intl.NumberFormat('uz-UZ').format(g.price)}<span className="text-[11px] text-slate-400 ml-1">UZS</span>
-              </TableCell>
+
               <TableCell>
                 <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
                   <Calendar className="h-3 w-3 text-slate-300" />

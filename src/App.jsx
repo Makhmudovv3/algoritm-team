@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
 import MainLayout from './components/layout/MainLayout';
 
@@ -42,45 +43,48 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <Routes>
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
-        
-        <Route path="/admin">
-          <Route path="roles" element={<Suspense fallback={<PageLoader />}><Roles /></Suspense>} />
-          <Route path="users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
-          <Route path="branches" element={<Suspense fallback={<PageLoader />}><Branches /></Suspense>} />
-          <Route path="rooms" element={<Suspense fallback={<PageLoader />}><Rooms /></Suspense>} />
-          <Route path="teachers" element={<Suspense fallback={<PageLoader />}><Teachers /></Suspense>} />
-          <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
-        </Route>
-        
-        <Route path="/academic">
-          <Route path="courses" element={<Suspense fallback={<PageLoader />}><Courses /></Suspense>} />
-          <Route path="groups" element={<Suspense fallback={<PageLoader />}><Groups /></Suspense>} />
-          <Route path="lessons" element={<Suspense fallback={<PageLoader />}><Lessons /></Suspense>} />
-          <Route path="schedules" element={<Suspense fallback={<PageLoader />}><Schedules /></Suspense>} />
-          <Route path="student-transfer" element={<Suspense fallback={<PageLoader />}><StudentTransfer /></Suspense>} />
-        </Route>
-        
-        <Route path="/finance">
-          <Route path="call-logs" element={<Suspense fallback={<PageLoader />}><CallLogs /></Suspense>} />
-          <Route path="discounts" element={<Suspense fallback={<PageLoader />}><Discounts /></Suspense>} />
-          <Route path="finance-accounts" element={<Suspense fallback={<PageLoader />}><FinanceAccounts /></Suspense>} />
-          <Route path="grants" element={<Suspense fallback={<PageLoader />}><Grants /></Suspense>} />
-          <Route path="payments" element={<Suspense fallback={<PageLoader />}><Payments /></Suspense>} />
-        </Route>
+    <>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
+          
+          <Route path="/admin">
+            <Route path="roles" element={<Suspense fallback={<PageLoader />}><Roles /></Suspense>} />
+            <Route path="users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
+            <Route path="branches" element={<Suspense fallback={<PageLoader />}><Branches /></Suspense>} />
+            <Route path="rooms" element={<Suspense fallback={<PageLoader />}><Rooms /></Suspense>} />
+            <Route path="teachers" element={<Suspense fallback={<PageLoader />}><Teachers /></Suspense>} />
+            <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+          </Route>
+          
+          <Route path="/academic">
+            <Route path="courses" element={<Suspense fallback={<PageLoader />}><Courses /></Suspense>} />
+            <Route path="groups" element={<Suspense fallback={<PageLoader />}><Groups /></Suspense>} />
+            <Route path="lessons" element={<Suspense fallback={<PageLoader />}><Lessons /></Suspense>} />
+            <Route path="schedules" element={<Suspense fallback={<PageLoader />}><Schedules /></Suspense>} />
+            <Route path="student-transfer" element={<Suspense fallback={<PageLoader />}><StudentTransfer /></Suspense>} />
+          </Route>
+          
+          <Route path="/finance">
+            <Route path="call-logs" element={<Suspense fallback={<PageLoader />}><CallLogs /></Suspense>} />
+            <Route path="discounts" element={<Suspense fallback={<PageLoader />}><Discounts /></Suspense>} />
+            <Route path="finance-accounts" element={<Suspense fallback={<PageLoader />}><FinanceAccounts /></Suspense>} />
+            <Route path="grants" element={<Suspense fallback={<PageLoader />}><Grants /></Suspense>} />
+            <Route path="payments" element={<Suspense fallback={<PageLoader />}><Payments /></Suspense>} />
+          </Route>
 
-        <Route path="/students">
-          <Route path="attendance" element={<Suspense fallback={<PageLoader />}><Attendance /></Suspense>} />
-          <Route path="parents" element={<Suspense fallback={<PageLoader />}><Parents /></Suspense>} />
-          <Route path="ratings" element={<Suspense fallback={<PageLoader />}><Ratings /></Suspense>} />
-          <Route path="student-groups" element={<Suspense fallback={<PageLoader />}><StudentGroups /></Suspense>} />
-          <Route path="students" element={<Suspense fallback={<PageLoader />}><Students /></Suspense>} />
+          <Route path="/students">
+            <Route path="attendance" element={<Suspense fallback={<PageLoader />}><Attendance /></Suspense>} />
+            <Route path="parents" element={<Suspense fallback={<PageLoader />}><Parents /></Suspense>} />
+            <Route path="ratings" element={<Suspense fallback={<PageLoader />}><Ratings /></Suspense>} />
+            <Route path="student-groups" element={<Suspense fallback={<PageLoader />}><StudentGroups /></Suspense>} />
+            <Route path="students" element={<Suspense fallback={<PageLoader />}><Students /></Suspense>} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+      </Routes>
+      <Toaster position="top-right" richColors />
+    </>
   );
 }
 

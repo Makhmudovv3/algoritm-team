@@ -28,9 +28,11 @@ export function StudentsFilters({
     <AnimatePresence initial={false}>
       {isOpen && (
         <motion.div 
-          initial={{ height: 0, opacity: 0, marginBottom: 0, overflow: 'hidden' }}
-          animate={{ height: 'auto', opacity: 1, marginBottom: 24, transitionEnd: { overflow: 'visible' } }}
-          exit={{ height: 0, opacity: 0, marginBottom: 0, overflow: 'hidden' }}
+          initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+          animate={{ height: 'auto', opacity: 1, marginBottom: 24 }}
+          exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+          style={{ overflow: isOpen ? 'visible' : 'hidden' }}
+          className="relative z-20"
         >
           <div className="flex flex-col sm:flex-row flex-wrap gap-4 p-4 bg-slate-50  border border-slate-200  rounded-lg">
             <div className="w-full sm:w-64">

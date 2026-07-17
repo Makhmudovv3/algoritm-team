@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export function GroupFormModal({ 
   isOpen, 
@@ -94,40 +95,28 @@ export function GroupFormModal({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-sm font-medium text-slate-700  mb-1">Kunlar <span className="text-red-500">*</span></label>
+                <Select 
+                  required 
+                  options={[
+                    { label: "Dushanba, Chorshanba, Juma", value: '1-3-5' },
+                    { label: "Seshanba, Payshanba, Shanba", value: '2-4-6' },
+                    { label: "Har kuni", value: 'everyday' }
+                  ]} 
+                  value={formData.days || '1-3-5'} 
+                  onChange={val => setFormData({...formData, days: val})} 
+                />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className="block text-sm font-medium text-slate-700  mb-1">Boshlanish sanasi</label>
-                <Input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700  mb-1">Tugash sanasi</label>
-                <Input type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} />
+                <DatePicker value={formData.start_date} onChange={val => setFormData({...formData, start_date: val})} />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="h-px w-full bg-slate-100 " />
 
-        {/* Finance */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-4">
-            <h4 className="text-sm font-semibold text-slate-900 ">Moliya</h4>
-            <p className="text-xs text-slate-500 mt-1">Guruh narxi va to'lovlar.</p>
-          </div>
-          <div className="md:col-span-8 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700  mb-1">Oylik Narx (UZS) <span className="text-red-500">*</span></label>
-              <Input 
-                required 
-                type="number"
-                min="0"
-                value={formData.price} 
-                onChange={e => setFormData({...formData, price: e.target.value})} 
-                placeholder="350000" 
-              />
-            </div>
-          </div>
-        </div>
 
         <div className="pt-6 border-t border-slate-100  flex items-center justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onClose}>Bekor qilish</Button>

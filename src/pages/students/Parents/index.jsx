@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../../../services/api';
+import { toast } from 'sonner';
+import { generateInitialPassword } from '@/utils/helpers';
 import { ParentsHeader } from './components/ParentsHeader';
 import { ParentsTable } from './components/ParentsTable';
 import { ParentModal } from './components/ParentModal';
@@ -8,20 +10,18 @@ import { ParentProfileDrawer } from './components/ParentProfileDrawer';
 
 export default function Parents() {
   const [parents, setParents] = useState([]);
+  const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormLoading, setIsFormLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [selectedParent, setSelectedParent] = useState(null);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    password: ''
-  });
+  
+  const initialForm = { name: '', phone: '+998 ', phone2: '', relation: 'Ota' };
+  const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => {
     fetchData();
@@ -29,10 +29,16 @@ export default function Parents() {
 
   const fetchData = async () => {
     try {
-      const data = await api.Parents.getAll();
-      setParents(data);
-    } catch (error) {
-      console.error(error);
+      setIsLoading(true);
+      const [parentsData, studentsData] = await Promise.all([
+        api.Parents.getAll(),
+        api.Students.getAll()
+      ]);
+      setParents(parentsData);
+      setStudents(studentsData);
+    } catch(err) {
+      console.error(err);
+      toast.error("Ma'lumotlarni yuklashda xatolik yuz berdi");
     } finally {
       setIsLoading(false);
     }
@@ -41,83 +47,104 @@ export default function Parents() {
   const handleOpenModal = (parent = null) => {
     if (parent) {
       setEditingId(parent.id);
-      setFormData({
-        name: parent.name,
-        phone: parent.phone,
-        password: parent.password || ''
-      });
+      setFormData(parent);
     } else {
       setEditingId(null);
-      setFormData({
-        name: '',
-        phone: '+998 ',
-        password: ''
-      });
+      setFormData(initialForm);
     }
     setIsModalOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!formData.name || !formData.phone) return;
+    
+    setIsFormLoading(true);
     try {
-      if (editingId) {
+      if (!editingId) {
+        // Check for duplicates
+        const existing = await api.Parents.findBy('phone', formData.phone);
+        if (existing) {
+          toast.error("Bu telefon raqamiga ega ota-ona allaqachon mavjud");
+          setIsFormLoading(false);
+          return;
+        }
+        
+        const payload = { 
+          ...formData,
+          password_hash: generateInitialPassword(formData.phone) 
+        };
+        const created = await api.Parents.create(payload);
+        setParents([...parents, created]);
+        toast.success("Ota-ona muvaffaqiyatli qo'shildi");
+      } else {
         const updated = await api.Parents.update(editingId, formData);
         setParents(parents.map(p => p.id === editingId ? updated : p));
-      } else {
-        const created = await api.Parents.create(formData);
-        setParents([...parents, created]);
+        toast.success("Ota-ona ma'lumotlari yangilandi");
       }
       setIsModalOpen(false);
     } catch(err) {
       console.error(err);
+      toast.error("Saqlashda xatolik yuz berdi");
+    } finally {
+      setIsFormLoading(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
-    if (deleteConfirmId) {
-      try {
-        await api.Parents.delete(deleteConfirmId);
-        setParents(parents.filter(p => p.id !== deleteConfirmId));
-        setDeleteConfirmId(null);
-      } catch (err) {
-        console.error(err);
-      }
+    try {
+      await api.Parents.delete(deleteConfirmId);
+      setParents(parents.filter(p => p.id !== deleteConfirmId));
+      setDeleteConfirmId(null);
+      toast.success("Ota-ona o'chirildi");
+    } catch(err) {
+      console.error(err);
+      toast.error("O'chirishda xatolik yuz berdi");
     }
   };
+
+  const filteredParents = useMemo(() => {
+    return parents.filter(parent => 
+      parent.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      parent.phone?.includes(searchQuery)
+    );
+  }, [parents, searchQuery]);
 
   return (
     <div className="max-w-[1600px] mx-auto pb-12 animate-in fade-in duration-300">
       <ParentsHeader onAddParent={() => handleOpenModal()} />
       
       <ParentsTable 
-        parents={parents}
-        isLoading={isLoading}
+        parents={filteredParents} 
+        students={students}
+        isLoading={isLoading} 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onEdit={handleOpenModal}
-        onDelete={(id) => setDeleteConfirmId(id)}
+        onEdit={handleOpenModal} 
+        onDelete={(id) => setDeleteConfirmId(id)} 
         onRowClick={(parent) => setSelectedParent(parent)}
       />
 
       <ParentModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        formData={formData}
-        setFormData={setFormData}
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
         isEditing={!!editingId}
+        formData={formData} 
+        setFormData={setFormData} 
+        onSave={handleSave}
       />
 
       <ParentDeleteModal 
-        isOpen={!!deleteConfirmId}
-        onClose={() => setDeleteConfirmId(null)}
-        onConfirm={handleDeleteConfirm}
+        isOpen={!!deleteConfirmId} 
+        onClose={() => setDeleteConfirmId(null)} 
+        onConfirm={handleDeleteConfirm} 
       />
 
       <ParentProfileDrawer
         isOpen={!!selectedParent}
         onClose={() => setSelectedParent(null)}
         parent={selectedParent}
+        students={students}
       />
     </div>
   );

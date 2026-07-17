@@ -1,100 +1,112 @@
 import React from 'react';
-import { Edit2, Trash2, Calendar } from 'lucide-react';
+import { Edit2, Trash2, Calendar, BookOpen, Users, CalendarDays, Clock, MoreVertical } from 'lucide-react';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
-import { TableContainer, EmptyTableState, AvatarInitials } from '@/components/ui/page-header';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
-export default function LessonsList({ lessons, isLoading, onEdit, onDelete, getGroupName }) {
+export default function LessonsList({ lessons, isLoading, onEdit, onDelete, getGroupName, getLessonTime }) {
   if (isLoading) {
     return (
-      <TableContainer>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4">Mavzu / Guruh</TableHead>
-              <TableHead>Sana</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <TableRow key={i}>
-                {[1, 2, 3, 4].map(c => (
-                  <TableCell key={c}>
-                    <div className="h-4 rounded bg-slate-100 animate-pulse" style={{ width: c === 1 ? '70%' : '50%' }} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-slate-500 text-[14px]">Darslar yuklanmoqda...</p>
+      </div>
     );
   }
 
   if (lessons.length === 0) {
     return (
-      <TableContainer>
-        <EmptyTableState title="Darslar topilmadi" description="Yangi dars qo'shing yoki filtrlarni o'zgartiring." />
-      </TableContainer>
+      <div className="bg-white border border-slate-200 rounded-lg p-16 text-center shadow-sm">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CalendarDays className="h-8 w-8 text-slate-300" />
+        </div>
+        <h3 className="text-[15px] font-semibold text-slate-900 mb-1">Darslar topilmadi</h3>
+        <p className="text-slate-500 text-[13px] max-w-sm mx-auto">
+          Qidiruv so'ziga mos darslar yo'q yoki tizimga hali darslar kiritilmagan.
+        </p>
+      </div>
     );
   }
 
   return (
-    <TableContainer>
+    <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-slate-50">
           <TableRow>
-            <TableHead className="pl-4">Mavzu / Guruh</TableHead>
-            <TableHead>Sana</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-20 text-right pr-4">Amallar</TableHead>
+            <TableHead className="w-[300px] pl-6 font-semibold text-slate-600">Dars mavzusi</TableHead>
+            <TableHead className="font-semibold text-slate-600">Guruh</TableHead>
+            <TableHead className="font-semibold text-slate-600">Sana va Vaqt</TableHead>
+            <TableHead className="font-semibold text-slate-600">Holat</TableHead>
+            <TableHead className="text-right pr-6 font-semibold text-slate-600">Amallar</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {lessons.map(l => (
-            <TableRow key={l.id} className="group cursor-pointer">
-              <TableCell className="pl-4">
-                <div className="flex items-center gap-2.5">
-                  <AvatarInitials name={l.topic || 'Mavzusiz'} size="sm" />
+          {lessons.map((l) => (
+            <TableRow key={l.id} className="group hover:bg-slate-50/50">
+              <TableCell className="pl-6">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 p-1.5 bg-blue-50 text-blue-600 rounded-md">
+                    <BookOpen className="h-4 w-4" />
+                  </div>
                   <div>
-                    <span className="text-[13px] font-medium text-slate-900 block leading-none truncate max-w-[200px] sm:max-w-xs">{l.topic || 'Mavzusiz'}</span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">Guruh: {getGroupName(l.group_id)}</span>
+                    <div className="font-medium text-slate-900 text-[14px]">{l.topic || 'Mavzusiz'}</div>
+                    <div className="text-[12px] text-slate-500 mt-0.5 flex items-center gap-1">
+                      ID: LSN-{l.id.substring(0, 8)}
+                    </div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
-                  <Calendar className="h-3 w-3 text-slate-400" />
-                  {l.date ? l.date.substring(0, 10) : '—'}
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-400" />
+                  <span className="text-[13px] font-medium text-slate-700">{getGroupName(l.group_id)}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={
-                  l.status === 'completed' ? 'success' : 
-                  l.status === 'cancelled' ? 'danger' : 'neutral'
-                }>
-                  {l.status === 'completed' ? "O'tildi" : l.status === 'cancelled' ? 'Bekor qilindi' : 'Rejalashtirilgan'}
-                </Badge>
-              </TableCell>
-              <TableCell className="pr-4 text-right">
-                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(l)}>
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(l.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5 text-[13px] text-slate-900 font-medium">
+                    <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                    {l.date ? l.date.substring(0, 10) : '—'}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[12px] text-slate-500 mt-1">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    {getLessonTime ? getLessonTime(l) : '14:00'}
+                  </div>
                 </div>
+              </TableCell>
+              <TableCell>
+                <span className={`inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium border ${
+                  l.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                  l.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-100' :
+                  'bg-blue-50 text-blue-700 border-blue-100'
+                }`}>
+                  {l.status === 'completed' ? "O'tildi" : l.status === 'cancelled' ? "Bekor qilindi" : "Reja"}
+                </span>
+              </TableCell>
+              <TableCell className="text-right pr-6">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => onEdit(l)}>
+                      <Edit2 className="h-4 w-4 mr-2" /> Tahrirlash
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600 hover:bg-red-50 focus:bg-red-50" onClick={() => onDelete(l.id)}>
+                      <Trash2 className="h-4 w-4 mr-2" /> O'chirish
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   );
 }

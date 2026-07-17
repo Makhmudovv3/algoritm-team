@@ -11,12 +11,16 @@ import {
 import { 
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem 
 } from '@/components/ui/dropdown';
+import { toast } from 'sonner';
+import { GroupMessageModal } from './GroupMessageModal';
 
-export function GroupProfileDrawer({ group, teacherName, courseName, roomName, isOpen, onClose, onEdit }) {
+export function GroupProfileDrawer({ group, teacherName, courseName, roomName, isOpen, onClose, onEdit, onDelete }) {
+  const [isMessageOpen, setIsMessageOpen] = React.useState(false);
+
   if (!group) return null;
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} position="right" size="xl">
+    <Drawer isOpen={isOpen} onClose={onClose} position="right" size="4xl">
       <div className="flex flex-col h-full bg-slate-50 ">
         
         {/* Header - Premium CRM Style */}
@@ -34,18 +38,18 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
                   </Badge>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-slate-500">
-                  <span className="font-mono text-xs">ID: GRP-{group.id.toString().padStart(4, '0')}</span>
+                  <span className="font-mono text-xs">ID: GRP-{group.id.toString().substring(0, 8)}</span>
                   <span>•</span>
                   <span className="flex items-center"><BookOpen className="h-3.5 w-3.5 mr-1" /> {courseName}</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pr-8">
               <Button variant="outline" size="sm" onClick={() => onEdit(group)} className="bg-white ">
                 <Edit2 className="h-4 w-4 mr-2" /> Tahrirlash
               </Button>
-              <Button variant="outline" size="sm" className="bg-white ">
+              <Button variant="outline" size="sm" onClick={() => setIsMessageOpen(true)} className="bg-white ">
                 <MessageSquare className="h-4 w-4 mr-2" /> Xabar
               </Button>
               <DropdownMenu>
@@ -55,8 +59,8 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="right" className="w-48">
-                  <DropdownMenuItem>Jadvalni o'zgartirish</DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 ">O'chirish</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("Jadvalni o'zgartirish qismi tez kunda tayyor bo'ladi")}>Jadvalni o'zgartirish</DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => { onClose(); onDelete(group.id); }}>O'chirish</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -75,7 +79,7 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
                   <TabsTrigger value="students" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-slate-900 =active]:border-white data-[state=active]:text-slate-900 =active]:text-white text-slate-500 rounded-none h-14 px-0 transition-none">O'quvchilar</TabsTrigger>
                   <TabsTrigger value="schedule" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-slate-900 =active]:border-white data-[state=active]:text-slate-900 =active]:text-white text-slate-500 rounded-none h-14 px-0 transition-none">Jadval</TabsTrigger>
                   <TabsTrigger value="attendance" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-slate-900 =active]:border-white data-[state=active]:text-slate-900 =active]:text-white text-slate-500 rounded-none h-14 px-0 transition-none">Davomat</TabsTrigger>
-                  <TabsTrigger value="finance" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-slate-900 =active]:border-white data-[state=active]:text-slate-900 =active]:text-white text-slate-500 rounded-none h-14 px-0 transition-none">Moliya</TabsTrigger>
+
                   <TabsTrigger value="timeline" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-slate-900 =active]:border-white data-[state=active]:text-slate-900 =active]:text-white text-slate-500 rounded-none h-14 px-0 transition-none">Tarix</TabsTrigger>
                 </TabsList>
               </div>
@@ -99,14 +103,7 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
                         <div className="text-xl font-bold text-green-600">88%</div>
                       </CardContent>
                     </Card>
-                    <Card className="shadow-none border-slate-200 ">
-                      <CardContent className="p-5">
-                        <div className="flex items-center gap-2 text-slate-500 mb-2">
-                          <Wallet className="h-4 w-4" /> <span className="text-xs font-medium">Oylik Tushum</span>
-                        </div>
-                        <div className="text-xl font-bold">{new Intl.NumberFormat('uz-UZ').format(group.price * 12)}</div>
-                      </CardContent>
-                    </Card>
+
                     <Card className="shadow-none border-slate-200 ">
                       <CardContent className="p-5">
                         <div className="flex items-center gap-2 text-slate-500 mb-2">
@@ -153,14 +150,7 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
                   </div>
                 </TabsContent>
 
-                <TabsContent value="finance" className="mt-0 h-full animate-in fade-in duration-300">
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="h-16 w-16 rounded-2xl bg-slate-50  flex items-center justify-center mb-4">
-                      <Wallet className="h-8 w-8 text-slate-300 " />
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-900  mb-1">Moliya ma'lumotlari yo'q</h3>
-                  </div>
-                </TabsContent>
+
 
                 <TabsContent value="timeline" className="mt-0 h-full animate-in fade-in duration-300">
                   <h3 className="text-sm font-semibold text-slate-900  mb-6">Tarix</h3>
@@ -180,7 +170,7 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
           </div>
 
           {/* Right Side Summary */}
-          <div className="w-full lg:w-80 bg-slate-50  p-8 overflow-y-auto hidden md:block">
+          <div className="w-full lg:w-80 bg-slate-50  p-8 overflow-y-auto hidden lg:block">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6">Xulosa</h3>
             
             <div className="space-y-6">
@@ -193,26 +183,31 @@ export function GroupProfileDrawer({ group, teacherName, courseName, roomName, i
                 <span className="text-xs text-slate-500 block mb-1">Xona</span>
                 <span className="text-sm font-medium text-slate-900 ">{roomName}</span>
               </div>
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Kunlar</span>
+                <span className="text-sm font-medium text-slate-900 ">
+                  {group.days === '2-4-6' ? 'Seshanba, Payshanba, Shanba' :
+                   group.days === 'everyday' ? 'Har kuni' :
+                   'Dushanba, Chorshanba, Juma'}
+                </span>
+              </div>
               <div className="h-px bg-slate-200  w-full" />
               <div>
                 <span className="text-xs text-slate-500 block mb-1">Boshlanish sanasi</span>
                 <span className="text-sm font-medium text-slate-900 ">{group.start_date ? group.start_date.substring(0,10) : '-'}</span>
               </div>
-              <div className="h-px bg-slate-200  w-full" />
-              <div>
-                <span className="text-xs text-slate-500 block mb-1">Tugash sanasi</span>
-                <span className="text-sm font-medium text-slate-900 ">{group.end_date ? group.end_date.substring(0,10) : '-'}</span>
-              </div>
-              <div className="h-px bg-slate-200  w-full" />
-              <div>
-                <span className="text-xs text-slate-500 block mb-1">Kurs narxi (Oylik)</span>
-                <span className="text-sm font-medium text-emerald-600 ">{new Intl.NumberFormat('uz-UZ').format(group.price)} UZS</span>
-              </div>
+
+
             </div>
           </div>
 
         </div>
       </div>
+      <GroupMessageModal 
+        isOpen={isMessageOpen} 
+        onClose={() => setIsMessageOpen(false)} 
+        group={group} 
+      />
     </Drawer>
   );
 }

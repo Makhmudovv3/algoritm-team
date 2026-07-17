@@ -53,27 +53,6 @@ export default function RoomDetailsDrawer({ isOpen, onClose, room, branchName })
             </div>
           </section>
 
-          {/* Equipment Section */}
-          <section>
-            <h3 className="text-sm font-semibold text-slate-900  uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Monitor size={16} className="text-slate-400" />
-              Mavjud Jihozlar
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="px-3 py-1.5 rounded-lg text-sm bg-slate-100  text-slate-700  font-medium">
-                🖥️ Smart Doska
-              </Badge>
-              <Badge variant="secondary" className="px-3 py-1.5 rounded-lg text-sm bg-slate-100  text-slate-700  font-medium">
-                ❄️ Konditsioner
-              </Badge>
-              <Badge variant="secondary" className="px-3 py-1.5 rounded-lg text-sm bg-slate-100  text-slate-700  font-medium">
-                <Wifi size={14} className="inline mr-1" /> Yuqori tezlikdagi Wi-Fi
-              </Badge>
-              <Badge variant="secondary" className="px-3 py-1.5 rounded-lg text-sm bg-slate-100  text-slate-700  font-medium">
-                🪑 20 ta parta
-              </Badge>
-            </div>
-          </section>
 
           {/* Schedule Section */}
           <section>

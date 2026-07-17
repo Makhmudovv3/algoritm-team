@@ -10,7 +10,8 @@ import {
 export function StudentsToolbar({
   searchQuery, setSearchQuery,
   selectedCount = 0,
-  isFiltersOpen, onToggleFilters
+  isFiltersOpen, onToggleFilters,
+  onDeleteSelected
 }) {
   return (
     <div className="mb-4">
@@ -52,7 +53,7 @@ export function StudentsToolbar({
                     SMS yuborish
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600 hover:bg-red-50">
+                  <DropdownMenuItem className="text-red-600 hover:bg-red-50" onSelect={onDeleteSelected}>
                     <Trash2 className="mr-2 h-3.5 w-3.5" />
                     O'chirish
                   </DropdownMenuItem>

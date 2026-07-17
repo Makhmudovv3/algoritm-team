@@ -3,7 +3,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
-export function StudentDeleteDialog({ isOpen, onClose, onConfirm }) {
+export function StudentDeleteDialog({ isOpen, onClose, onConfirm, isMultiple = false, count = 0 }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="O'chirishni tasdiqlaysizmi?" maxWidth="max-w-md">
       <div className="space-y-6 pt-2">
@@ -12,7 +12,10 @@ export function StudentDeleteDialog({ isOpen, onClose, onConfirm }) {
           <div>
             <h4 className="text-sm font-semibold text-red-900  mb-1">Diqqat!</h4>
             <p className="text-sm text-red-700/90  leading-relaxed">
-              Siz ushbu o'quvchini butunlay o'chirib tashlamoqchisiz. Uning barcha tarixiy ma'lumotlari, davomati va to'lovlari arxivlanishi mumkin. Bu amalni ortga qaytarib bo'lmaydi.
+              {isMultiple 
+                ? `Siz ${count} ta o'quvchini butunlay o'chirib tashlamoqchisiz. Ularning barcha tarixiy ma'lumotlari, davomati va to'lovlari arxivlanishi mumkin. Bu amalni ortga qaytarib bo'lmaydi.`
+                : `Siz ushbu o'quvchini butunlay o'chirib tashlamoqchisiz. Uning barcha tarixiy ma'lumotlari, davomati va to'lovlari arxivlanishi mumkin. Bu amalni ortga qaytarib bo'lmaydi.`
+              }
             </p>
           </div>
         </div>

@@ -23,6 +23,12 @@ class BaseRepository {
     return items.find(item => item.id === id);
   }
 
+  async findBy(field, value) {
+    await this._delay();
+    const items = await this.getAll();
+    return items.find(item => String(item[field]) === String(value));
+  }
+
   async create(data) {
     await this._delay();
     const items = await this.getAll();
@@ -85,11 +91,7 @@ export const api = {
   Groups: new BaseRepository('groups', [
     { id: 'group-1', course_id: 'course-1', teacher_id: 'teacher-1', room_id: 'room-1', name: 'FR-01', start_date: '2026-08-01', end_date: '2027-02-01', lesson_duration: 120, monthly_lessons: 12, is_active: true }
   ]),
-  Schedules: new BaseRepository('schedules', [
-    { id: 'schedule-1', group_id: 'group-1', room_id: 'room-1', day_of_week: 1, start_time: '14:00', end_time: '16:00' },
-    { id: 'schedule-2', group_id: 'group-1', room_id: 'room-1', day_of_week: 3, start_time: '14:00', end_time: '16:00' },
-    { id: 'schedule-3', group_id: 'group-1', room_id: 'room-1', day_of_week: 5, start_time: '14:00', end_time: '16:00' }
-  ]),
+  Schedules: new BaseRepository('schedules', []),
   Lessons: new BaseRepository('lessons', []),
   StudentTransfers: new BaseRepository('student_transfer', []),
 

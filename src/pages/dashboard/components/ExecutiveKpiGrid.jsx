@@ -25,20 +25,16 @@ export function ExecutiveKpiGrid({ stats, isLoading }) {
   if (isLoading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map(i => <KPI_SKELETON key={i} />)}
+        {Array.from({ length: 4 }).map((_, i) => <KPI_SKELETON key={i} />)}
       </div>
     );
   }
 
   const kpis = [
     { label: 'Umumiy daromad',    value: `$${formatMoney(stats?.revenue || 0)}`,     icon: DollarSign,  trend: "O'tgan oyga nisbatan +12.5%", trendUp: true },
-    { label: 'Sof foyda',         value: `$${formatMoney(stats?.finance || 0)}`,      icon: Activity,    trend: '+8.2% operatsion marja', trendUp: true },
     { label: 'O\'quvchilar',      value: stats?.students || 0,                        icon: Users,       trend: '+5.1% faol o\'quvchilar', trendUp: true },
-    { label: 'O\'sish sur\'ati',  value: stats?.growthRate || '0%',                   icon: TrendingUp,  trend: 'Oydan oyga', trendUp: true },
-    { label: 'Davomat',           value: stats?.attendanceRate || '0%',               icon: ShieldCheck, trend: 'Haftalik o\'rtacha', trendUp: false },
     { label: 'O\'qituvchilar',    value: stats?.teachers || 0,                        icon: UserCheck,   trend: 'Hozirda faoliyat yurituvchi', trendUp: true },
     { label: 'Faol guruhlar',     value: stats?.groups || 0,                          icon: BookOpen,    trend: 'Davom etayotgan darslar', trendUp: true },
-    { label: 'O\'rtacha guruh',   value: '14',                                        icon: Clock,       trend: 'Guruhdagi o\'quvchilar', trendUp: true },
   ];
 
   return (

@@ -3,16 +3,26 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { formatPhone } from '@/utils/helpers';
 
 export function StudentFormModal({
   isOpen, onClose, editingId,
   formData, setFormData, handleSave,
-  branchOptions, parentOptions
+  branchOptions, parentOptions, isLoading
 }) {
   const statusOptions = [
     { label: 'Faol', value: 'true' },
     { label: 'Nofaol', value: 'false' }
   ];
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.fullname || !formData.phone || !formData.branch_id || !formData.birthday) {
+      return;
+    }
+    handleSave();
+  };
 
   return (
     <Modal
@@ -21,7 +31,7 @@ export function StudentFormModal({
       title={editingId ? "O'quvchini Tahrirlash" : "Yangi O'quvchi"}
       maxWidth="max-w-2xl"
     >
-      <form onSubmit={handleSave} className="divide-y divide-slate-100">
+      <form onSubmit={onSubmit} className="divide-y divide-slate-100">
         {/* General */}
         <div className="py-5 space-y-3">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Umumiy ma'lumot</p>
@@ -31,58 +41,59 @@ export function StudentFormModal({
                 label="F.I.SH"
                 required
                 value={formData.fullname}
-                onChange={e => setFormData({ ...formData, fullname: e.target.value })}
+                onChange={e => setFormData(prev => ({ ...prev, fullname: e.target.value }))}
                 placeholder="Aliyev Vali Sobirovich"
+                disabled={isLoading}
               />
             </div>
-            <Input 
+            <Input
+              label="O'quvchi telefon raqami"
+              required
+              value={formData.phone}
+              onChange={e => setFormData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
+              placeholder="+998 90 123 45 67"
+              disabled={isLoading}
+            />
+            <DatePicker 
               label="Tug'ilgan sana" 
-              type="date" 
+              required
               value={formData.birthday || ''}
-              onChange={e => setFormData({ ...formData, birthday: e.target.value })}
+              onChange={val => setFormData(prev => ({ ...prev, birthday: val }))}
             />
-            <Select 
-              label="Jinsi" 
-              placeholder="Tanlang" 
-              options={[
-                { label: 'Erkak', value: 'Male' },
-                { label: 'Ayol', value: 'Female' }
-              ]} 
-              value={formData.gender || ''}
-              onChange={val => setFormData({ ...formData, gender: val })}
-            />
+            <div className="sm:col-span-2">
+              <Select 
+                label="Jinsi" 
+                placeholder="Tanlang" 
+                required
+                options={[
+                  { label: 'Erkak', value: 'Male' },
+                  { label: 'Ayol', value: 'Female' }
+                ]} 
+                value={formData.gender || ''}
+                onChange={val => setFormData(prev => ({ ...prev, gender: val }))}
+                disabled={isLoading}
+              />
+            </div>
           </div>
         </div>
 
         {/* Contact */}
         <div className="py-5 space-y-3">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Aloqa</p>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Ota-ona ma'lumotlari</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             <Input
-              label="Telefon raqam"
-              required
-              value={formData.phone}
-              onChange={(e) => {
-                let val = e.target.value.replace(/[^\d+]/g, '');
-                if (!val.startsWith('+998')) val = '+998';
-                
-                let digits = val.replace(/\D/g, '').substring(3);
-                let formatted = '+998';
-                if (digits.length > 0) formatted += ' ' + digits.substring(0, 2);
-                if (digits.length > 2) formatted += ' ' + digits.substring(2, 5);
-                if (digits.length > 5) formatted += ' ' + digits.substring(5, 7);
-                if (digits.length > 7) formatted += ' ' + digits.substring(7, 9);
-                
-                setFormData({ ...formData, phone: formatted });
-              }}
-              placeholder="+998 90 123 45 67"
+              label="Ota-ona (F.I.SH)"
+              placeholder="Ismini yozing (ixtiyoriy)"
+              value={formData.parent_name || ''}
+              onChange={e => setFormData(prev => ({ ...prev, parent_name: e.target.value }))}
+              disabled={isLoading}
             />
-            <Select
-              label="Ota-ona"
-              placeholder="Tanlang (ixtiyoriy)"
-              options={[{ label: 'Tanlanmagan', value: '' }, ...parentOptions]}
-              value={formData.parent_id}
-              onChange={val => setFormData({ ...formData, parent_id: val })}
+            <Input
+              label="Ota-ona telefon raqami"
+              value={formData.parent_phone || '+998 '}
+              onChange={e => setFormData(prev => ({ ...prev, parent_phone: formatPhone(e.target.value) }))}
+              placeholder="+998 90 123 45 67"
+              disabled={isLoading}
             />
           </div>
         </div>
@@ -94,23 +105,26 @@ export function StudentFormModal({
             <Select
               label="Filial"
               placeholder="Filialni tanlang"
+              required
               options={branchOptions}
               value={formData.branch_id}
-              onChange={val => setFormData({ ...formData, branch_id: val })}
+              onChange={val => setFormData(prev => ({ ...prev, branch_id: val }))}
+              disabled={isLoading}
             />
             <Select
               label="Status"
               options={statusOptions}
               value={formData.is_active}
-              onChange={val => setFormData({ ...formData, is_active: val })}
+              onChange={val => setFormData(prev => ({ ...prev, is_active: val }))}
+              disabled={isLoading}
             />
           </div>
         </div>
 
         {/* Footer */}
         <div className="pt-4 flex items-center justify-end gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>Bekor qilish</Button>
-          <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={isLoading}>Bekor qilish</Button>
+          <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
             {editingId ? 'Saqlash' : "Qo'shish"}
           </Button>
         </div>
