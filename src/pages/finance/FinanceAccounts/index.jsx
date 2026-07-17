@@ -1,170 +1,241 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, Wallet, Building2, CreditCard, Landmark } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function FinanceAccounts() {
-  const [accounts, setAccounts] = useState([
-    { id: 1, name: 'Main Cash Desk', balance: '15,000,000 UZS', type: 'Cash', lastUpdated: '2026-07-16 10:30' },
-    { id: 2, name: 'Click Account', balance: '4,500,000 UZS', type: 'Card', lastUpdated: '2026-07-16 12:15' },
-    { id: 3, name: 'Payme Account', balance: '8,200,000 UZS', type: 'Card', lastUpdated: '2026-07-16 14:00' },
-    { id: 4, name: 'Bank Transfer', balance: '25,000,000 UZS', type: 'Bank', lastUpdated: '2026-07-15 09:00' },
-  ]);
+  const [accounts, setAccounts] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
-    type: 'Cash',
-    balance: '',
+    branch_id: '',
+    type: 'cash'
   });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [aData, bData] = await Promise.all([
+        api.FinanceAccounts.getAll(),
+        api.Branches.getAll()
+      ]);
+      setAccounts(aData);
+      setBranches(bData);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const branchOptions = branches.map(b => ({ label: b.name, value: b.id }));
+  const typeOptions = [
+    { label: 'Naqd pul (Kassa)', value: 'cash' },
+    { label: 'Plastik Karta', value: 'card' },
+    { label: 'Bank Hisob-Raqami', value: 'bank' }
+  ];
+
+  const getBranchName = (id) => branches.find(b => b.id === id)?.name || 'Unknown';
 
   const handleOpenModal = (account = null) => {
     if (account) {
       setEditingId(account.id);
-      setFormData({ name: account.name, type: account.type, balance: account.balance });
+      setFormData({
+        name: account.name,
+        branch_id: account.branch_id,
+        type: account.type || 'cash'
+      });
     } else {
       setEditingId(null);
-      setFormData({ name: '', type: 'Cash', balance: '' });
+      setFormData({
+        name: '',
+        branch_id: branchOptions.length > 0 ? branchOptions[0].value : '',
+        type: 'cash'
+      });
     }
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => setIsModalOpen(false);
-
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handleSubmit = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    if (editingId) {
-      setAccounts(accounts.map((acc) => acc.id === editingId ? { ...acc, ...formData, lastUpdated: now } : acc));
-    } else {
-      const newAccount = {
-        id: accounts.length > 0 ? Math.max(...accounts.map((a) => a.id)) + 1 : 1,
-        ...formData,
-        lastUpdated: now,
-      };
-      setAccounts([...accounts, newAccount]);
+    if (!formData.name || !formData.branch_id) return;
+
+    try {
+      if (editingId) {
+        const updated = await api.FinanceAccounts.update(editingId, formData);
+        setAccounts(accounts.map(a => a.id === editingId ? updated : a));
+      } else {
+        const created = await api.FinanceAccounts.create(formData);
+        setAccounts([...accounts, created]);
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    setAccounts(accounts.filter((a) => a.id !== id));
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.FinanceAccounts.delete(deleteConfirmId);
+        setAccounts(accounts.filter(a => a.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
-  const confirmDelete = () => {
-    if (itemToDelete) {
-      handleDelete(itemToDelete);
-      setItemToDelete(null);
+  const filteredAccounts = accounts.filter(a => {
+    const matchSearch = (a.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchBranch = branchFilter ? String(a.branch_id) === String(branchFilter) : true;
+    return matchSearch && matchBranch;
+  });
+
+  const getTypeIcon = (type) => {
+    switch(type) {
+      case 'card': return <CreditCard size={16} />;
+      case 'bank': return <Landmark size={16} />;
+      default: return <Wallet size={16} />;
     }
   };
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Finance Accounts</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage all your financial accounts and balances.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 ">Moliya Hisoblari</h1>
+          <p className="text-sm text-slate-500 ">Filiallardagi kassa va bank hisob raqamlarini boshqarish</p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-sm">
-            + Create Account
-          </button>
-        </div>
+        <Button onClick={() => handleOpenModal()} className="gap-2">
+          <Plus size={16} /> Yangi hisob
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
-              <tr>
-                <th className="py-4 px-6">ID</th>
-                <th className="py-4 px-6">Account Name</th>
-                <th className="py-4 px-6">Type</th>
-                <th className="py-4 px-6">Balance</th>
-                <th className="py-4 px-6">Last Updated</th>
-                <th className="py-4 px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {accounts.map((account) => (
-                <tr key={account.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900">#{account.id}</td>
-                  <td className="py-4 px-6 font-medium text-gray-900">{account.name}</td>
-                  <td className="py-4 px-6">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      account.type === 'Cash' ? 'bg-emerald-100 text-emerald-700' :
-                      account.type === 'Card' ? 'bg-blue-100 text-blue-700' :
-                      'bg-purple-100 text-purple-700'
-                    }`}>
-                      {account.type}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 font-semibold text-gray-900">{account.balance}</td>
-                  <td className="py-4 px-6">{account.lastUpdated}</td>
-                  <td className="py-4 px-6 text-right space-x-3">
-                    <button onClick={() => handleOpenModal(account)} className="text-indigo-600 hover:text-indigo-800 font-medium text-sm inline-flex items-center" title="Edit">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
-                    </button>
-                    <button onClick={() => setItemToDelete(account.id)} className="text-red-600 hover:text-red-800 font-medium text-sm inline-flex items-center" title="Delete">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {accounts.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="py-8 text-center text-gray-500">No accounts found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">{editingId ? 'Edit Account' : 'Create Account'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
-                <input required name="name" value={formData.name} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select name="type" value={formData.type} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500">
-                  <option value="Cash">Cash</option>
-                  <option value="Card">Card</option>
-                  <option value="Bank">Bank</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Balance</label>
-                <input required name="balance" value={formData.balance} onChange={handleChange} type="text" placeholder="e.g. 10,000,000 UZS" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div className="pt-4 flex justify-end space-x-3">
-                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Save</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {itemToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 text-center">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Haqiqatan ham o'chirmoqchimisiz?</h2>
-            <p className="text-gray-500 text-sm mb-6">Bu amalni ortga qaytarib bo'lmaydi.</p>
-            <div className="flex justify-center space-x-3">
-              <button type="button" onClick={() => setItemToDelete(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Bekor qilish</button>
-              <button type="button" onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">O'chirish</button>
+      <Card>
+        <CardHeader className="pb-3 border-b border-border">
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <div className="w-full sm:max-w-md">
+              <Input 
+                icon={Search} 
+                placeholder="Hisob nomi..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-64">
+              <CustomSelect 
+                options={[{label: "Barcha filiallar", value: ""}, ...branchOptions]} 
+                value={branchFilter} 
+                onChange={setBranchFilter} 
+              />
             </div>
           </div>
+        </CardHeader>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Hisob Nomi / Turi</TableHead>
+                <TableHead>Filial</TableHead>
+                <TableHead className="text-right">Amallar</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAccounts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-8 text-slate-500">
+                    Ma'lumot topilmadi
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredAccounts.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600   flex items-center justify-center shrink-0">
+                          {getTypeIcon(a.type)}
+                        </div>
+                        <div>
+                          <div className="text-slate-900 ">{a.name}</div>
+                          <div className="text-xs text-slate-500 capitalize">{a.type === 'cash' ? 'Naqd pul (Kassa)' : a.type === 'card' ? 'Plastik karta' : 'Bank'}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600 ">
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Building2 size={14} className="text-slate-400" />
+                        <span>{getBranchName(a.branch_id)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(a)}>
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50 " onClick={() => setDeleteConfirmId(a.id)}>
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Hisobni Tahrirlash' : "Yangi Hisob Qo'shish"}>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Hisob nomi</label>
+            <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Masalan: Asosiy kassa" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Filial</label>
+            <CustomSelect options={branchOptions} value={formData.branch_id} onChange={val => setFormData({...formData, branch_id: val})} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Hisob turi</label>
+            <CustomSelect options={typeOptions} value={formData.type} onChange={val => setFormData({...formData, type: val})} />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="w-full">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
+        <div className="space-y-4">
+          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

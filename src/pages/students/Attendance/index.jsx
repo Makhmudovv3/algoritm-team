@@ -1,191 +1,235 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, Clock, Save, X, AlertCircle } from "lucide-react";
-import { toast } from "react-toastify";
-import { PageHeader } from "../../../components/ui/page-header";
-import { Card, CardContent } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { Badge } from "../../../components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../components/ui/table";
+import React, { useState, useEffect } from 'react';
+import { api } from '../../../services/api';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import CustomSelect from '@/components/CustomSelect';
 
-const INITIAL_ATTENDANCE = [
-  { id: 1, name: "Azizbek Rahimov", status: "present", reason: "", locked: false },
-  { id: 2, name: "Sardor Ibragimov", status: "absent", reason: "Kasal (Ota onasiga telefon qilindi)", locked: true },
-  { id: 3, name: "Madina Aliyeva", status: "late", reason: "Tirbandlik", locked: true },
-  { id: 4, name: "Javohir Vohidov", status: "present", reason: "", locked: false },
-];
+import AttendanceHeader from './components/AttendanceHeader';
+import AttendanceStats from './components/AttendanceStats';
+import AttendanceTabs from './components/AttendanceTabs';
+import DailyAttendance from './components/DailyAttendance';
+import MonthlyAttendance from './components/MonthlyAttendance';
+import AttendanceHeatmap from './components/AttendanceHeatmap';
+import GroupAttendance from './components/GroupAttendance';
+import TeacherAttendance from './components/TeacherAttendance';
+import StudentAttendanceHistory from './components/StudentAttendanceHistory';
 
 export default function Attendance() {
-  const [attendanceList, setAttendanceList] = useState(INITIAL_ATTENDANCE);
-  const [reasonModal, setReasonModal] = useState(null); // { id, name, status, tempReason }
+  const [attendances, setAttendances] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('daily');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    student_id: '',
+    group_id: '',
+    date: new Date().toISOString().substring(0, 10),
+    status: 'present'
+  });
 
-  const handleStatusClick = (student, newStatus) => {
-    if (student.locked) return; // Cannot change if locked
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    if (newStatus === 'absent' || newStatus === 'late') {
-      setReasonModal({
-        id: student.id,
-        name: student.name,
-        status: newStatus,
-        tempReason: student.reason || ""
+  const fetchData = async () => {
+    try {
+      const [aData, sData, gData, tData] = await Promise.all([
+        api.Attendance.getAll(),
+        api.Students.getAll(),
+        api.Groups.getAll(),
+        api.Teachers.getAll()
+      ]);
+      setAttendances(aData);
+      setStudents(sData);
+      setGroups(gData);
+      setTeachers(tData);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Davomat');
+    
+    // Set column widths
+    worksheet.columns = [
+      { header: "O'quvchi", key: 'student', width: 25 },
+      { header: 'Guruh', key: 'group', width: 15 },
+      { header: 'Sana', key: 'date', width: 15 },
+      { header: 'Holat', key: 'status', width: 15 },
+    ];
+
+    // Style headers
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(1).height = 25;
+
+    // Add data rows
+    attendances.forEach(a => {
+      const sName = students.find(s => s.id === a.student_id)?.fullname || "Noma'lum";
+      const gName = groups.find(g => g.id === a.group_id)?.name || "Noma'lum";
+      worksheet.addRow({
+        student: sName,
+        group: gName,
+        date: a.date ? a.date.substring(0, 10) : '-',
+        status: a.status === 'present' ? 'Kelgan' : 'Kelmagan'
       });
-    } else {
-      setAttendanceList(prev => prev.map(s => 
-        s.id === student.id ? { ...s, status: newStatus, reason: '' } : s
-      ));
+    });
+
+    // Style data rows
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.alignment = { vertical: 'middle', horizontal: 'left' };
+        row.getCell('status').font = { 
+          color: { argb: row.getCell('status').value === 'Kelgan' ? 'FF16A34A' : 'FFDC2626' },
+          bold: true
+        };
+        // Add borders
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: {style:'thin', color: {argb:'FFE2E8F0'}},
+            left: {style:'thin', color: {argb:'FFE2E8F0'}},
+            bottom: {style:'thin', color: {argb:'FFE2E8F0'}},
+            right: {style:'thin', color: {argb:'FFE2E8F0'}}
+          };
+        });
+      }
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), 'davomat.xlsx');
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.student_id || !formData.group_id) return;
+    
+    try {
+      const created = await api.Attendance.create(formData);
+      setAttendances([created, ...attendances]);
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
     }
   };
 
-  const handleSaveReason = () => {
-    if (!reasonModal.tempReason.trim()) {
-      toast.error("Iltimos, sababni yozing!");
-      return;
-    }
-    setAttendanceList(prev => prev.map(s => 
-      s.id === reasonModal.id ? { ...s, status: reasonModal.status, reason: reasonModal.tempReason, locked: true } : s
-    ));
-    toast.success("Sabab saqlandi va holat qulflangan!");
-    setReasonModal(null);
-  };
-
-  const handleGlobalSave = () => {
-    // Optionally lock everything that has a status
-    setAttendanceList(prev => prev.map(s => ({ ...s, locked: true })));
-    toast.success("Barcha davomatlar saqlandi va yopildi!");
-  };
+  const studentOptions = students.map(s => ({ label: s.fullname, value: s.id }));
+  const groupOptions = groups.map(g => ({ label: g.name, value: g.id }));
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 relative"
-    >
-      <PageHeader 
-        title="Davomat (Attendance)" 
-        description="Guruhlar bo'yicha davomat olish va sabablarni kiritish."
-      >
-        <Button className="gap-2 bg-green-600 hover:bg-green-700 text-white" onClick={handleGlobalSave}>
-          <Save className="w-4 h-4" />
-          Saqlash
-        </Button>
-      </PageHeader>
-
-      <Card>
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 rounded-t-2xl">
-          <div className="font-semibold text-gray-900">
-            Frontend React - <span className="text-blue-600">Bugungi davomat (16-Iyul)</span>
-          </div>
-        </div>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>F.I.SH</TableHead>
-                <TableHead className="text-center">Keldi</TableHead>
-                <TableHead className="text-center">Kelmadi</TableHead>
-                <TableHead className="text-center">Kech qoldi</TableHead>
-                <TableHead className="w-[30%]">Holat/Sabab</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {attendanceList.map((student) => (
-                <TableRow key={student.id} className={student.locked ? "bg-gray-50/50" : ""}>
-                  <TableCell className="font-medium text-gray-900">
-                    {student.name}
-                    {student.locked && <Badge variant="outline" className="ml-2 text-[10px]">Saqlangan</Badge>}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <button 
-                      onClick={() => handleStatusClick(student, 'present')}
-                      disabled={student.locked}
-                      className={`p-2 rounded-full transition-colors ${student.status === 'present' ? 'bg-green-100 text-green-600 shadow-sm' : 'text-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent'}`}>
-                      <CheckCircle2 className="w-6 h-6" />
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <button 
-                      onClick={() => handleStatusClick(student, 'absent')}
-                      disabled={student.locked}
-                      className={`p-2 rounded-full transition-colors ${student.status === 'absent' ? 'bg-red-100 text-red-600 shadow-sm' : 'text-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent'}`}>
-                      <XCircle className="w-6 h-6" />
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <button 
-                      onClick={() => handleStatusClick(student, 'late')}
-                      disabled={student.locked}
-                      className={`p-2 rounded-full transition-colors ${student.status === 'late' ? 'bg-amber-100 text-amber-600 shadow-sm' : 'text-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent'}`}>
-                      <Clock className="w-6 h-6" />
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    {student.reason ? (
-                      <span className="text-sm text-gray-600 italic bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm inline-block">
-                        {student.reason}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Reason Modal */}
-      <AnimatePresence>
-        {reasonModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setReasonModal(null)}>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className={`w-5 h-5 ${reasonModal.status === 'absent' ? 'text-red-500' : 'text-amber-500'}`} />
-                  <h3 className="font-bold text-gray-900">Sababni kiritish</h3>
-                </div>
-                <button onClick={() => setReasonModal(null)} className="text-gray-400 hover:text-gray-600 bg-white shadow-sm border border-gray-100 hover:bg-gray-50 p-1.5 rounded-full transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="p-6">
-                <p className="text-sm font-medium text-gray-700 mb-3">
-                  <span className="font-bold text-gray-900">{reasonModal.name}</span> nima uchun {reasonModal.status === 'absent' ? 'kelmadi' : 'kech qoldi'}?
-                </p>
-                <textarea 
-                  autoFocus
-                  value={reasonModal.tempReason}
-                  onChange={(e) => setReasonModal({...reasonModal, tempReason: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-gray-50/50 focus:bg-white resize-none min-h-[100px]"
-                  placeholder="Sababni batafsil yozing..."
-                ></textarea>
-              </div>
-              <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setReasonModal(null)}>
-                  Bekor qilish
-                </Button>
-                <Button className="flex-1" onClick={handleSaveReason}>
-                  Saqlash
-                </Button>
-              </div>
-            </motion.div>
-          </div>
+    <div className="max-w-[1600px] mx-auto pb-12 animate-in fade-in duration-300">
+      <div className="mb-6">
+        <AttendanceHeader 
+          onExport={handleExport} 
+          onAdd={() => {
+            setFormData({
+              student_id: studentOptions[0]?.value || '',
+              group_id: groupOptions[0]?.value || '',
+              date: new Date().toISOString().substring(0, 10),
+              status: 'present'
+            });
+            setIsModalOpen(true);
+          }} 
+        />
+      </div>
+      
+      <AttendanceStats attendances={attendances} />
+      
+      <div className="mb-6">
+        <AttendanceTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
+      
+      <div>
+        {activeTab === 'daily' && (
+          <DailyAttendance 
+            attendances={attendances} 
+            students={students} 
+            groups={groups} 
+            isLoading={isLoading} 
+          />
         )}
-      </AnimatePresence>
-    </motion.div>
+        {activeTab === 'monthly' && (
+          <MonthlyAttendance 
+            attendances={attendances} 
+            students={students} 
+            groups={groups}
+            teachers={teachers}
+            isLoading={isLoading} 
+          />
+        )}
+        {activeTab === 'heatmap' && (
+          <AttendanceHeatmap 
+            attendances={attendances} 
+            isLoading={isLoading} 
+          />
+        )}
+        {activeTab === 'groups' && (
+          <GroupAttendance 
+            attendances={attendances} 
+            groups={groups}
+            students={students}
+            teachers={teachers}
+            isLoading={isLoading} 
+          />
+        )}
+        {activeTab === 'teachers' && (
+          <TeacherAttendance 
+            attendances={attendances} 
+            groups={groups}
+            teachers={teachers}
+            isLoading={isLoading} 
+          />
+        )}
+        {activeTab === 'history' && (
+          <StudentAttendanceHistory 
+            attendances={attendances} 
+            students={students}
+            groups={groups}
+            isLoading={isLoading} 
+          />
+        )}
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Davomat qo'shish">
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">O'quvchi</label>
+            <CustomSelect options={studentOptions} value={formData.student_id} onChange={val => setFormData({...formData, student_id: val})} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Guruh</label>
+            <CustomSelect options={groupOptions} value={formData.group_id} onChange={val => setFormData({...formData, group_id: val})} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Sana</label>
+              <Input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Holat</label>
+              <CustomSelect 
+                options={[
+                  { label: 'Kelgan', value: 'present' },
+                  { label: 'Kelmagan', value: 'absent' }
+                ]} 
+                value={formData.status} 
+                onChange={val => setFormData({...formData, status: val})} 
+              />
+            </div>
+          </div>
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="w-full">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }

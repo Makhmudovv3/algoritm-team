@@ -1,132 +1,281 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { Star, Trophy, TrendingUp, Award } from "lucide-react";
-import { PageHeader } from "../../../components/ui/page-header";
-import { Card, CardContent } from "../../../components/ui/card";
-import { Badge } from "../../../components/ui/badge";
-
-const MOCK_RATINGS = [
-  { id: 1, name: "Azizbek Rahimov", group: "Frontend React", points: 950, rank: 1, trend: "up", badge: "Gold" },
-  { id: 2, name: "Sardor Ibragimov", group: "Python Backend", points: 890, rank: 2, trend: "up", badge: "Silver" },
-  { id: 3, name: "Madina Aliyeva", group: "English B2", points: 820, rank: 3, trend: "down", badge: "Bronze" },
-  { id: 4, name: "Javohir Vohidov", group: "Frontend React", points: 750, rank: 4, trend: "up", badge: "None" },
-];
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Star } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import { PageHeader, TableContainer, SearchBar, EmptyTableState, AvatarInitials } from '@/components/ui/page-header';
+import { Select } from '@/components/ui/select';
 
 export default function Ratings() {
+  const [ratings, setRatings] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  const [formData, setFormData] = useState({
+    student_id: '',
+    group_id: '',
+    score: '',
+    comment: ''
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [rData, sData, gData] = await Promise.all([
+        api.Ratings.getAll(),
+        api.Students.getAll(),
+        api.Groups.getAll()
+      ]);
+      setRatings(rData);
+      setStudents(sData);
+      setGroups(gData);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStudentName = (id) => students.find(s => s.id === id)?.fullname || "Noma'lum";
+  const getGroupName = (id) => groups.find(g => g.id === id)?.name || "Noma'lum";
+
+  const studentOptions = [{ label: "O'quvchini tanlang", value: "" }, ...students.map(s => ({ label: s.fullname, value: s.id }))];
+  const groupOptions = [{ label: "Barcha guruhlar", value: "" }, ...groups.map(g => ({ label: g.name, value: g.id }))];
+
+  const handleOpenModal = (rating = null) => {
+    if (rating) {
+      setEditingId(rating.id);
+      setFormData({
+        student_id: rating.student_id,
+        group_id: rating.group_id,
+        score: rating.score,
+        comment: rating.comment || ''
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        student_id: '',
+        group_id: '',
+        score: '',
+        comment: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.student_id || !formData.group_id || !formData.score) return;
+
+    try {
+      const payload = {
+        ...formData,
+        score: Number(formData.score)
+      };
+
+      if (editingId) {
+        const updated = await api.Ratings.update(editingId, payload);
+        setRatings(ratings.map(r => r.id === editingId ? updated : r));
+      } else {
+        const created = await api.Ratings.create(payload);
+        setRatings([...ratings, created]);
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Ratings.delete(deleteConfirmId);
+        setRatings(ratings.filter(r => r.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const filteredRatings = ratings.filter(r => {
+    const sName = (getStudentName(r.student_id) || '').toLowerCase();
+    const matchSearch = sName.includes(searchQuery.toLowerCase());
+    const matchGroup = groupFilter ? String(r.group_id) === String(groupFilter) : true;
+    return matchSearch && matchGroup;
+  });
+
+  const renderStars = (score) => {
+    return (
+      <div className="flex gap-1">
+        {[1,2,3,4,5].map(star => (
+          <Star 
+            key={star} 
+            size={14} 
+            className={star <= score ? "text-yellow-400 fill-yellow-400" : "text-slate-200"} 
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="p-6 md:p-8 max-w-7xl mx-auto space-y-8"
-    >
+    <div className="max-w-[1600px] mx-auto pb-12 animate-in fade-in duration-300 space-y-6">
       <PageHeader 
-        title="O'quvchilar Reytingi" 
-        description="Kunlik baholar va o'quvchilarning umumiy reytingi."
+        title="Reyting" 
+        description="O'quvchilarning baholari va o'zlashtirish ko'rsatkichlari"
+        actions={
+          <Button onClick={() => handleOpenModal()} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+            <Plus size={16} /> Yangi baho
+          </Button>
+        }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-amber-50 to-yellow-100/50 border-amber-200">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-amber-800 mb-1">Eng yaxshi o'quvchi</p>
-              <h3 className="text-2xl font-bold text-amber-900">Azizbek Rahimov</h3>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center text-amber-700">
-              <Trophy className="w-6 h-6" />
-            </div>
-          </CardContent>
-        </Card>
+      <TableContainer>
+        <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row gap-3 relative z-40">
+          <div className="w-full sm:w-64">
+            <SearchBar 
+              placeholder="O'quvchi ismi bo'yicha qidiring..." 
+              value={searchQuery}
+              onChange={setSearchQuery}
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <Select 
+              options={groupOptions} 
+              value={groupFilter} 
+              onChange={setGroupFilter} 
+            />
+          </div>
+        </div>
         
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-100/50 border-blue-200">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-800 mb-1">Eng faol guruh</p>
-              <h3 className="text-2xl font-bold text-blue-900">Frontend React</h3>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center text-blue-700">
-              <UsersIcon className="w-6 h-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-100/50 border-green-200">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-800 mb-1">O'rtacha davomat</p>
-              <h3 className="text-2xl font-bold text-green-900">94%</h3>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-green-200 flex items-center justify-center text-green-700">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <div className="divide-y divide-gray-100">
-            {MOCK_RATINGS.map((student, idx) => (
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                key={student.id} 
-                className="flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors"
-              >
-                <div className="flex items-center gap-6">
-                  <div className={`w-10 h-10 flex items-center justify-center font-bold rounded-xl ${student.rank === 1 ? 'bg-amber-100 text-amber-600' : student.rank === 2 ? 'bg-gray-200 text-gray-600' : student.rank === 3 ? 'bg-orange-100 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
-                    #{student.rank}
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{student.name}</h4>
-                    <p className="text-sm text-gray-500">{student.group}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  {student.badge !== 'None' && (
-                    <Badge variant="outline" className="gap-1.5 hidden md:flex">
-                      <Award className={`w-3.5 h-3.5 ${student.badge === 'Gold' ? 'text-amber-500' : student.badge === 'Silver' ? 'text-gray-400' : 'text-orange-500'}`} />
-                      {student.badge}
-                    </Badge>
-                  )}
-                  <div className="text-right">
-                    <div className="flex items-center gap-1.5 justify-end mb-0.5">
-                      <span className="text-xl font-bold text-gray-900">{student.points}</span>
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    </div>
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Ball</span>
-                  </div>
-                </div>
-              </motion.div>
+        {isLoading ? (
+          <div className="p-8 space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex gap-4 items-center">
+                <div className="w-8 h-8 rounded-full bg-slate-100 animate-pulse" />
+                <div className="h-4 rounded bg-slate-100 animate-pulse w-48" />
+                <div className="h-4 rounded bg-slate-100 animate-pulse w-24" />
+                <div className="h-4 rounded bg-slate-100 animate-pulse w-32" />
+              </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-}
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">O'quvchi</TableHead>
+                <TableHead>Guruh</TableHead>
+                <TableHead>Baho</TableHead>
+                <TableHead>Izoh</TableHead>
+                <TableHead className="w-20" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRatings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="p-0">
+                    <EmptyTableState title="Ma'lumot topilmadi" description="Qidiruv natijasi yoki guruh bo'yicha hech qanday baho topilmadi." icon={Star} />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRatings.map((r) => (
+                  <TableRow key={r.id} className="group hover:bg-slate-50 transition-colors">
+                    <TableCell className="pl-4">
+                      <div className="flex items-center gap-3">
+                        <AvatarInitials name={getStudentName(r.student_id)} size="sm" />
+                        <span className="text-[13px] font-medium text-slate-900">{getStudentName(r.student_id)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[13px] text-slate-600 font-medium">
+                      {getGroupName(r.group_id)}
+                    </TableCell>
+                    <TableCell>
+                      {renderStars(r.score)}
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-[13px] max-w-[200px] truncate">
+                      {r.comment || '—'}
+                    </TableCell>
+                    <TableCell className="pr-3">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-slate-700" onClick={() => handleOpenModal(r)}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirmId(r.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </TableContainer>
 
-// Inline helper to avoid extra import
-function UsersIcon(props) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Bahoni Tahrirlash' : "Yangi Baho Qo'shish"} maxWidth="max-w-xl">
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">O'quvchi <span className="text-red-500">*</span></label>
+              <div className="relative z-50">
+                <Select 
+                  options={studentOptions} 
+                  value={formData.student_id} 
+                  onChange={val => setFormData({...formData, student_id: val})} 
+                  placeholder="O'quvchini tanlang..."
+                  searchable
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Guruh <span className="text-red-500">*</span></label>
+              <div className="relative z-40">
+                <Select 
+                  options={groups.map(g => ({ label: g.name, value: g.id }))} 
+                  value={formData.group_id} 
+                  onChange={val => setFormData({...formData, group_id: val})} 
+                  placeholder="Guruhni tanlang..."
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Baho (1 dan 5 gacha) <span className="text-red-500">*</span></label>
+              <Input required type="number" min="1" max="5" value={formData.score} onChange={e => setFormData({...formData, score: e.target.value})} placeholder="5" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Izoh</label>
+              <Input value={formData.comment} onChange={e => setFormData({...formData, comment: e.target.value})} placeholder="Qo'shimcha izoh (ixtiyoriy)..." />
+            </div>
+          </div>
+          <div className="pt-5 border-t border-slate-100 flex gap-3 justify-end">
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?" maxWidth="max-w-md">
+        <div className="space-y-6">
+          <p className="text-sm text-slate-600">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button variant="ghost" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>O'chirish</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 }

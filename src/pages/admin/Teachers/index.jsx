@@ -1,207 +1,160 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
-import TeacherTable from './components/TeacherTable';
-import TeacherModal from './components/TeacherModal';
-import DeleteModal from '../../../components/common/DeleteModal';
-import { getTeachers, saveTeachers, getBranches, getUsers, saveUsers } from '../../../utils/db';
+import { api } from '../../../services/api';
+import { Card } from '@/components/ui/card';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import TeachersHeader from './components/TeachersHeader';
+import TeachersStats from './components/TeachersStats';
+import TeachersFilter from './components/TeachersFilter';
+import TeachersTable from './components/TeachersTable';
+import TeachersGrid from './components/TeachersGrid';
+import TeacherProfileDrawer from './components/TeacherProfileDrawer';
+import TeacherFormModal from './components/TeacherFormModal';
 
 export default function Teachers() {
-  const [branches] = useState(getBranches() || []);
-  const [users, setUsers] = useState(getUsers() || []);
-  const [teachers, setTeachers] = useState(getTeachers() || []);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [branchFilter, setBranchFilter] = useState('all');
+  const [teachers, setTeachers] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
+  const [searchQuery, setSearchQuery] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [viewMode, setViewMode] = useState('list');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  
-  const [formData, setFormData] = useState({ 
-    name: '', phone: '+998 ', email: '', 
-    branch_id: '', salary_per_student: '', is_active: true 
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+
+  const [formData, setFormData] = useState({
+    user_id: '',
+    branch_id: '',
+    salary_per_student: '',
+    is_active: 'true'
   });
 
-  // Sync users automatically if changed elsewhere (optional, but good if we rely on global state)
-  // Real apps use contexts or react-query, but for now we just use local storage on initial load.
+  useEffect(() => { fetchData(); }, []);
 
-  const getBranchName = (branchId) => {
-    const branch = branches.find(b => b.id === Number(branchId));
-    return branch ? branch.name : 'Noma\'lum';
+  const fetchData = async () => {
+    try {
+      const [tData, uData, bData] = await Promise.all([
+        api.Teachers.getAll(),
+        api.Users.getAll(),
+        api.Branches.getAll()
+      ]);
+      setTeachers(tData);
+      setUsers(uData);
+      setBranches(bData);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const getUser = (userId) => {
-    return users.find(u => u.id === Number(userId)) || {};
-  };
+  const userOptions = users.map(u => ({ label: u.name || u.fullname, value: u.id }));
+  const branchOptions = branches.map(b => ({ label: b.name, value: b.id }));
+  const statusOptions = [
+    { label: 'Faol', value: 'true' },
+    { label: 'Nofaol', value: 'false' }
+  ];
 
-  const formatMoney = (amount) => {
-    return new Intl.NumberFormat('uz-UZ', { style: 'currency', currency: 'UZS', minimumFractionDigits: 0 }).format(amount);
-  };
-
-  const filteredTeachers = teachers.filter(teacher => {
-    const user = getUser(teacher.user_id);
-    const matchesSearch = (user.name || user.fullname || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesBranch = branchFilter === 'all' || teacher.branch_id === Number(branchFilter);
-    return matchesSearch && matchesBranch;
-  });
-
-  const handleOpenModal = (teacher = null) => {
-    if (teacher) {
-      const user = getUser(teacher.user_id);
-      setEditingTeacher(teacher);
-      setFormData({ 
-        name: user.name || user.fullname || '', 
-        phone: user.phone || '', 
-        email: user.email || '', 
-        branch_id: teacher.branch_id, 
-        salary_per_student: teacher.salary_per_student, 
-        is_active: teacher.is_active 
+  const handleOpenModal = (t = null) => {
+    if (t) {
+      setEditingId(t.id);
+      setFormData({
+        user_id: t.user_id,
+        branch_id: t.branch_id,
+        salary_per_student: t.salary_per_student,
+        is_active: String(t.is_active)
       });
     } else {
-      setEditingTeacher(null);
-      setFormData({ 
-        name: '', phone: '', email: '', 
-        branch_id: branches.length > 0 ? branches[0].id : '', 
-        salary_per_student: '', is_active: true 
+      setEditingId(null);
+      setFormData({
+        user_id: userOptions.length > 0 ? userOptions[0].value : '',
+        branch_id: branchOptions.length > 0 ? branchOptions[0].value : '',
+        salary_per_student: '',
+        is_active: 'true'
       });
     }
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingTeacher(null);
-    setFormData({ name: '', phone: '+998 ', email: '', branch_id: '', salary_per_student: '', is_active: true });
-  };
-
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.branch_id || !formData.salary_per_student) return;
+    try {
+      const payload = {
+        user_id: formData.user_id,
+        branch_id: formData.branch_id,
+        salary_per_student: Number(formData.salary_per_student),
+        is_active: formData.is_active === 'true'
+      };
 
-    let newTeachers;
-    let newUsers;
-
-    if (editingTeacher) {
-      newUsers = users.map(u => 
-        u.id === editingTeacher.user_id 
-          ? { ...u, name: formData.name, fullname: formData.name, phone: formData.phone, email: formData.email }
-          : u
-      );
-      newTeachers = teachers.map(t => 
-        t.id === editingTeacher.id 
-          ? { ...t, branch_id: Number(formData.branch_id), salary_per_student: Number(formData.salary_per_student), is_active: formData.is_active } 
-          : t
-      );
-    } else {
-      const newUserId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-      newUsers = [...users, { id: newUserId, fullname: formData.name, name: formData.name, phone: formData.phone, email: formData.email, role_id: '33333333-3333-3333-3333-333333333333', is_active: true, created_at: new Date().toISOString() }];
-      
-      const newTeacherId = teachers.length > 0 ? Math.max(...teachers.map(t => t.id)) + 1 : 1;
-      newTeachers = [...teachers, { 
-        id: newTeacherId, 
-        user_id: newUserId, 
-        branch_id: Number(formData.branch_id), 
-        salary_per_student: Number(formData.salary_per_student), 
-        is_active: formData.is_active 
-      }];
-    }
-    
-    setUsers(newUsers);
-    saveUsers(newUsers);
-    
-    setTeachers(newTeachers);
-    saveTeachers(newTeachers);
-    
-    handleCloseModal();
+      if (editingId) {
+        const updated = await api.Teachers.update(editingId, payload);
+        setTeachers(teachers.map(t => t.id === editingId ? updated : t));
+      } else {
+        const created = await api.Teachers.create(payload);
+        setTeachers([...teachers, created]);
+      }
+      setIsModalOpen(false);
+    } catch(err) { console.error(err); }
   };
 
-  const handleDelete = (id) => {
-    setItemToDelete(id);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (itemToDelete) {
-      const newTeachers = teachers.filter(t => t.id !== itemToDelete);
-      setTeachers(newTeachers);
-      saveTeachers(newTeachers);
-      setItemToDelete(null);
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Teachers.delete(deleteConfirmId);
+        setTeachers(teachers.filter(t => t.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) { console.error(err); }
     }
   };
+
+  const getUserName = (id) => users.find(u => u.id === id)?.fullname || users.find(u => u.id === id)?.name || 'Noma\'lum';
+  const getBranchName = (id) => branches.find(b => b.id === id)?.name || 'Noma\'lum';
+
+  const filteredTeachers = teachers.filter(t => {
+    const uName = (getUserName(t.user_id) || '').toLowerCase();
+    const matchSearch = uName.includes(searchQuery.toLowerCase());
+    const matchBranch = branchFilter ? String(t.branch_id) === String(branchFilter) : true;
+    return matchSearch && matchBranch;
+  });
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">O'qituvchilar</h1>
-          <p className="text-sm text-gray-500 mt-1">O'quv markazidagi barcha o'qituvchilarni boshqarish</p>
-        </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          Yangi o'qituvchi
-        </button>
-      </div>
+    <div className="space-y-6">
+      <TeachersHeader onAdd={() => handleOpenModal()} viewMode={viewMode} setViewMode={setViewMode} />
+      <TeachersStats teachers={teachers} />
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input 
-            type="text" 
-            placeholder="O'qituvchi ismiga ko'ra qidiring..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors"
-          />
-        </div>
+      <Card>
+        <TeachersFilter 
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery} 
+          branchFilter={branchFilter} setBranchFilter={setBranchFilter} 
+          branchOptions={branchOptions} 
+        />
         
-        <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter size={18} className="text-gray-400" />
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <select
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-            className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors appearance-none bg-white cursor-pointer"
-          >
-            <option value="all">Barcha filiallar</option>
-            {branches.map(branch => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
+        ) : viewMode === 'list' ? (
+          <TeachersTable teachers={filteredTeachers} getUserName={getUserName} getBranchName={getBranchName} onEdit={handleOpenModal} onDelete={setDeleteConfirmId} onViewProfile={setSelectedTeacher} />
+        ) : (
+          <TeachersGrid teachers={filteredTeachers} getUserName={getUserName} getBranchName={getBranchName} onEdit={handleOpenModal} onDelete={setDeleteConfirmId} onViewProfile={setSelectedTeacher} />
+        )}
+      </Card>
+
+      <TeacherFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} isEditing={!!editingId} formData={formData} setFormData={setFormData} userOptions={userOptions} branchOptions={branchOptions} statusOptions={statusOptions} onSave={handleSave} />
+
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
+        <div className="space-y-4">
+          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
+          </div>
         </div>
-      </div>
+      </Modal>
 
-      <TeacherTable 
-        teachers={filteredTeachers}
-        searchQuery={searchQuery}
-        branchFilter={branchFilter}
-        getUser={getUser}
-        getBranchName={getBranchName}
-        formatMoney={formatMoney}
-        onEdit={handleOpenModal}
-        onDelete={handleDelete}
-      />
-
-      <TeacherModal 
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
-        formData={formData}
-        setFormData={setFormData}
-        branches={branches}
-        isEditing={!!editingTeacher}
-      />
-
-      <DeleteModal 
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleDeleteConfirm}
-        title="O'qituvchini o'chirishni tasdiqlaysizmi?"
-      />
+      <TeacherProfileDrawer isOpen={!!selectedTeacher} onClose={() => setSelectedTeacher(null)} teacher={selectedTeacher} getUserName={getUserName} getBranchName={getBranchName} />
     </div>
   );
 }

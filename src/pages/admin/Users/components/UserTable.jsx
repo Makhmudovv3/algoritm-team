@@ -1,75 +1,73 @@
 import React from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table';
+import { TableContainer, EmptyTableState, AvatarInitials } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function UserTable({ users, searchQuery, roleFilter, getRoleName, onEdit, onDelete }) {
+  if (users.length === 0) {
+    return (
+      <TableContainer>
+        <EmptyTableState 
+          title={searchQuery || roleFilter !== 'all' ? "Qidiruvingiz bo'yicha xodim topilmadi" : "Xodimlar yo'q"} 
+          description={searchQuery || roleFilter !== 'all' ? "Filtrni o'zgartirib ko'ring." : "Yangi xodim qo'shing."} 
+        />
+      </TableContainer>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-50 border-y border-gray-200">
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">#</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Xodim</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Telefon</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Roli</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Status</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Amallar</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {users.length === 0 ? (
-            <tr>
-              <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                {searchQuery || roleFilter !== 'all' ? "Qidiruvingiz bo'yicha xodim topilmadi" : "Ma'lumot topilmadi"}
-              </td>
-            </tr>
-          ) : (
-            users.map((user, index) => (
-              <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4 text-sm text-gray-600">{index + 1}</td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900">{user.fullname}</span>
-                    <span className="text-xs text-gray-500 mt-0.5">{user.email}</span>
+    <TableContainer>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-16 pl-4">#</TableHead>
+            <TableHead>Xodim</TableHead>
+            <TableHead>Telefon</TableHead>
+            <TableHead>Roli</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-24 text-right pr-4">Amallar</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.map((user, index) => (
+            <TableRow key={user.id} className="group cursor-pointer">
+              <TableCell className="pl-4 text-slate-500 font-mono text-[11px]">{index + 1}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2.5">
+                  <AvatarInitials name={user.fullname} size="sm" />
+                  <div>
+                    <span className="text-[13px] font-medium text-slate-900 block leading-none">{user.fullname}</span>
+                    <span className="text-[11px] text-slate-400 mt-0.5">{user.email}</span>
                   </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">{user.phone}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-200">
-                    {getRoleName(user.role_id)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-center">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                    user.is_active 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                  }`}>
-                    {user.is_active ? 'Faol' : 'Nofaol'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => onEdit(user)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Tahrirlash"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => onDelete(user.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="O'chirish"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+                </div>
+              </TableCell>
+              <TableCell className="text-slate-600 text-[13px]">{user.phone}</TableCell>
+              <TableCell>
+                <Badge variant="neutral">{getRoleName(user.role_id)}</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant={user.is_active ? 'success' : 'danger'}>
+                  {user.is_active ? 'Faol' : 'Nofaol'}
+                </Badge>
+              </TableCell>
+              <TableCell className="pr-4 text-right">
+                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(user)}>
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(user.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

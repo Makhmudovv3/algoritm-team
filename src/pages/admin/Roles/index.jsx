@@ -1,115 +1,203 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ShieldCheck } from 'lucide-react';
-import RoleTable from './components/RoleTable';
-import RoleModal from './components/RoleModal';
-import DeleteModal from '../../../components/common/DeleteModal';
-import { getRoles, saveRoles } from '../../../utils/db';
+import { Plus, Edit2, Trash2, ShieldCheck, Search } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function Roles() {
-  const [roles, setRoles] = useState(getRoles() || []);
+  const [roles, setRoles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  
   const [formData, setFormData] = useState({ name: '', level: '' });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const data = await api.Roles.getAll();
+      setRoles(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredRoles = roles.filter(r => 
+    (r.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleOpenModal = (role = null) => {
     if (role) {
-      setEditingRole(role);
+      setEditingId(role.id);
       setFormData({ name: role.name, level: role.level });
     } else {
-      setEditingRole(null);
+      setEditingId(null);
       setFormData({ name: '', level: '' });
     }
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingRole(null);
-    setFormData({ name: '', level: '' });
-  };
-
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.level) return;
 
-    let newRoles;
-    if (editingRole) {
-      newRoles = roles.map(r => 
-        r.id === editingRole.id 
-          ? { ...r, name: formData.name, level: Number(formData.level) } 
-          : r
-      );
-    } else {
-      const newId = crypto.randomUUID();
-      const createdAt = new Date().toISOString();
-      newRoles = [...roles, { id: newId, name: formData.name, level: Number(formData.level), created_at: createdAt }];
+    try {
+      if (editingId) {
+        const updated = await api.Roles.update(editingId, { name: formData.name, level: Number(formData.level) });
+        setRoles(roles.map(r => r.id === editingId ? updated : r));
+      } else {
+        const created = await api.Roles.create({ name: formData.name, level: Number(formData.level) });
+        setRoles([...roles, created]);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
     }
-    
-    setRoles(newRoles);
-    saveRoles(newRoles);
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    setItemToDelete(id);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (itemToDelete) {
-      const newRoles = roles.filter(r => r.id !== itemToDelete);
-      setRoles(newRoles);
-      saveRoles(newRoles);
-      setItemToDelete(null);
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Roles.delete(deleteConfirmId);
+        setRoles(roles.filter(r => r.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
   return (
-    <div className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/20 p-8 min-h-[calc(100vh-8rem)]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30 text-white transform hover:scale-105 transition-transform duration-300">
-            <ShieldCheck size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Rollar paneli</h1>
-            <p className="text-sm text-gray-500 mt-1 font-medium">Tizimdagi huquqlar va lavozimlarni boshqarish</p>
+    <div className="space-y-4 max-w-5xl mx-auto pb-8">
+      <PageHeader
+        title="Rollar"
+        description="Tizim rollari va ruxsatlarini boshqarish"
+        actions={
+          <Button size="sm" onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-3.5 w-3.5" />
+            Yangi rol
+          </Button>
+        }
+      />
+
+      <Card className="border-slate-200 shadow-sm bg-white overflow-hidden rounded-lg">
+        <div className="p-3 border-b border-slate-200 bg-white">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Rollarni qidirish..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 w-full pl-8 pr-3 text-[13px] bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
           </div>
         </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="group relative inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-          <Plus size={18} className="relative z-10" />
-          <span className="relative z-10">Yangi rol</span>
-        </button>
-      </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 uppercase">Rol nomi</TableHead>
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 uppercase">Daraja</TableHead>
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 text-right w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRoles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-[13px] text-slate-500">
+                      Rollar topilmadi
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredRoles.map((role) => (
+                    <TableRow key={role.id} className="group hover:bg-slate-50/50 border-b border-slate-100 last:border-0 transition-colors">
+                      <TableCell className="px-3 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <ShieldCheck size={12} />
+                          </div>
+                          <span className="text-[13px] font-medium text-slate-900">{role.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-[13px] text-slate-600">
+                        {role.level}
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" onClick={() => handleOpenModal(role)}>
+                            <Edit2 size={12} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" onClick={() => setDeleteConfirmId(role.id)}>
+                            <Trash2 size={12} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <RoleTable 
-          roles={roles} 
-          onEdit={handleOpenModal} 
-          onDelete={handleDelete} 
-        />
-      </div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Rolni tahrirlash' : "Yangi rol"}>
+        <form onSubmit={handleSave} className="space-y-4 pt-4">
+          <div className="space-y-1.5">
+            <label className="block text-[13px] font-medium text-slate-700">Rol nomi</label>
+            <Input 
+              required 
+              value={formData.name} 
+              onChange={e => setFormData({...formData, name: e.target.value})} 
+              placeholder="masalan: Administrator"
+              className="h-8 text-[13px] border-slate-200 focus:ring-blue-500 focus:border-blue-500" 
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[13px] font-medium text-slate-700">Daraja</label>
+            <Input 
+              required 
+              type="number" 
+              min="1" 
+              value={formData.level} 
+              onChange={e => setFormData({...formData, level: e.target.value})} 
+              placeholder="1"
+              className="h-8 text-[13px] border-slate-200 focus:ring-blue-500 focus:border-blue-500" 
+            />
+          </div>
+          <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 mt-6">
+            <Button type="button" variant="outline" className="h-8 text-[13px] px-3 border-slate-200" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="h-8 text-[13px] px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Rolni saqlash</Button>
+          </div>
+        </form>
+      </Modal>
 
-      <RoleModal 
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
-        formData={formData}
-        setFormData={setFormData}
-        isEditing={!!editingRole}
-      />
-
-      <DeleteModal 
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleDeleteConfirm}
-        title="Rolni o'chirishni tasdiqlaysizmi?"
-      />
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Rolni o'chirish">
+        <div className="pt-4">
+          <p className="text-[13px] text-slate-600 mb-6">Rostdan ham bu rolni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <Button variant="outline" className="h-8 text-[13px] px-3 border-slate-200" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" className="h-8 text-[13px] px-3 bg-red-600 hover:bg-red-700 text-white shadow-sm" onClick={handleDeleteConfirm}>O'chirish</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

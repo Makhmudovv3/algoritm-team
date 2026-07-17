@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 export default function DeleteModal({ isOpen, onClose, onConfirm, title = "O'chirishni tasdiqlaysizmi?" }) {
   if (!isOpen) return null;

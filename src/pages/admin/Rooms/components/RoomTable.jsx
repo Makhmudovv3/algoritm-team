@@ -1,64 +1,61 @@
 import React from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table';
+import { TableContainer, EmptyTableState } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function RoomTable({ rooms, searchQuery, branchFilter, getBranchName, onEdit, onDelete }) {
+  if (rooms.length === 0) {
+    return (
+      <TableContainer>
+        <EmptyTableState 
+          title={searchQuery || branchFilter !== 'all' ? "Qidiruvingiz bo'yicha xona topilmadi" : "Xonalar yo'q"} 
+          description={searchQuery || branchFilter !== 'all' ? "Filtrni o'zgartirib ko'ring." : "Yangi xona qo'shing."} 
+        />
+      </TableContainer>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-50 border-y border-gray-200">
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">#</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Xona nomi</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Sig'imi</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tegishli filial</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Amallar</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {rooms.length === 0 ? (
-            <tr>
-              <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                {searchQuery || branchFilter !== 'all' ? "Qidiruvingiz bo'yicha xona topilmadi" : "Ma'lumot topilmadi"}
-              </td>
-            </tr>
-          ) : (
-            rooms.map((room, index) => (
-              <tr key={room.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4 text-sm text-gray-600">{index + 1}</td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{room.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-200">
-                    {room.capacity} kishi
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs font-medium border border-blue-100">
-                    {getBranchName(room.branch_id)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => onEdit(room)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Tahrirlash"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => onDelete(room.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="O'chirish"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <TableContainer>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-16 pl-4">#</TableHead>
+            <TableHead>Xona nomi</TableHead>
+            <TableHead>Sig'imi</TableHead>
+            <TableHead>Filial</TableHead>
+            <TableHead className="w-24 text-right pr-4">Amallar</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rooms.map((room, index) => (
+            <TableRow key={room.id} className="group cursor-pointer">
+              <TableCell className="pl-4 text-slate-500 font-mono text-[11px]">{index + 1}</TableCell>
+              <TableCell className="font-medium text-slate-900">{room.name}</TableCell>
+              <TableCell>
+                <Badge variant="neutral">{room.capacity} kishi</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant="info">{getBranchName(room.branch_id)}</Badge>
+              </TableCell>
+              <TableCell className="pr-4 text-right">
+                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(room)}>
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(room.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

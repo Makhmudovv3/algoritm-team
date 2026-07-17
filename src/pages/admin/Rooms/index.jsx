@@ -1,156 +1,140 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
-import RoomTable from './components/RoomTable';
-import RoomModal from './components/RoomModal';
-import DeleteModal from '../../../components/common/DeleteModal';
-import { getRooms, saveRooms, getBranches } from '../../../utils/db';
+import React, { useState, useEffect } from 'react';
+import { api } from '../../../services/api';
+
+// Components
+import RoomsHeader from './components/RoomsHeader';
+import RoomsFilter from './components/RoomsFilter';
+import RoomsGrid from './components/RoomsGrid';
+import RoomFormModal from './components/RoomFormModal';
+import RoomDeleteModal from './components/RoomDeleteModal';
+import RoomDetailsDrawer from './components/RoomDetailsDrawer';
 
 export default function Rooms() {
-  const [branches] = useState(getBranches() || []);
-  const [rooms, setRooms] = useState(getRooms() || []);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [branchFilter, setBranchFilter] = useState('all');
+  const [rooms, setRooms] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
+  const [searchQuery, setSearchQuery] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [detailsRoom, setDetailsRoom] = useState(null);
+  
   const [formData, setFormData] = useState({ name: '', capacity: '', branch_id: '' });
 
-  const getBranchName = (branchId) => {
-    const branch = branches.find(b => b.id === Number(branchId));
-    return branch ? branch.name : 'Noma\'lum';
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [roomsData, branchesData] = await Promise.all([
+        api.Rooms.getAll(),
+        api.Branches.getAll()
+      ]);
+      setRooms(roomsData);
+      setBranches(branchesData);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  const getBranchName = (branchId) => branches.find(b => b.id === branchId)?.name || 'Noma\'lum';
+  const branchOptions = branches.map(b => ({ label: b.name, value: b.id }));
+
   const filteredRooms = rooms.filter(room => {
-    const matchesSearch = room.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesBranch = branchFilter === 'all' || room.branch_id === Number(branchFilter);
+    const matchesSearch = (room.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesBranch = branchFilter ? room.branch_id === branchFilter : true;
     return matchesSearch && matchesBranch;
   });
 
   const handleOpenModal = (room = null) => {
     if (room) {
-      setEditingRoom(room);
+      setEditingId(room.id);
       setFormData({ name: room.name, capacity: room.capacity, branch_id: room.branch_id });
     } else {
-      setEditingRoom(null);
-      setFormData({ name: '', capacity: '', branch_id: branches.length > 0 ? branches[0].id : '' });
+      setEditingId(null);
+      setFormData({ name: '', capacity: '', branch_id: branchOptions.length > 0 ? branchOptions[0].value : '' });
     }
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingRoom(null);
-    setFormData({ name: '', capacity: '', branch_id: '' });
-  };
-
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.capacity || !formData.branch_id) return;
 
-    let newRooms;
-    if (editingRoom) {
-      newRooms = rooms.map(r => 
-        r.id === editingRoom.id 
-          ? { ...r, name: formData.name, capacity: Number(formData.capacity), branch_id: Number(formData.branch_id) } 
-          : r
-      );
-    } else {
-      const newId = rooms.length > 0 ? Math.max(...rooms.map(r => r.id)) + 1 : 1;
-      newRooms = [...rooms, { id: newId, name: formData.name, capacity: Number(formData.capacity), branch_id: Number(formData.branch_id) }];
+    try {
+      if (editingId) {
+        const updated = await api.Rooms.update(editingId, { ...formData, capacity: Number(formData.capacity) });
+        setRooms(rooms.map(r => r.id === editingId ? updated : r));
+      } else {
+        const created = await api.Rooms.create({ ...formData, capacity: Number(formData.capacity) });
+        setRooms([...rooms, created]);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
     }
-    
-    setRooms(newRooms);
-    saveRooms(newRooms);
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    setItemToDelete(id);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (itemToDelete) {
-      const newRooms = rooms.filter(r => r.id !== itemToDelete);
-      setRooms(newRooms);
-      saveRooms(newRooms);
-      setItemToDelete(null);
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Rooms.delete(deleteConfirmId);
+        setRooms(rooms.filter(r => r.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="space-y-6">
+      <RoomsHeader onAddRoom={() => handleOpenModal()} />
       
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Xonalar</h1>
-          <p className="text-sm text-gray-500 mt-1">Filiallardagi o'quv xonalarini boshqarish</p>
-        </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          Yangi xona
-        </button>
-      </div>
-
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input 
-            type="text" 
-            placeholder="Xona nomiga ko'ra qidiring..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors"
-          />
-        </div>
-        
-        <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter size={18} className="text-gray-400" />
-          </div>
-          <select
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-            className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors appearance-none bg-white cursor-pointer"
-          >
-            <option value="all">Barcha filiallar</option>
-            {branches.map(branch => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <RoomTable 
-        rooms={filteredRooms}
+      <RoomsFilter 
         searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         branchFilter={branchFilter}
+        setBranchFilter={setBranchFilter}
+        branchOptions={branchOptions}
+      />
+
+      <RoomsGrid 
+        rooms={filteredRooms}
         getBranchName={getBranchName}
         onEdit={handleOpenModal}
-        onDelete={handleDelete}
+        onDelete={setDeleteConfirmId}
+        onViewDetails={setDetailsRoom}
+        isLoading={isLoading}
       />
 
-      <RoomModal 
+      <RoomFormModal 
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
+        onClose={() => setIsModalOpen(false)}
+        editingId={editingId}
         formData={formData}
         setFormData={setFormData}
-        branches={branches}
-        isEditing={!!editingRoom}
+        branchOptions={branchOptions}
+        handleSave={handleSave}
       />
 
-      <DeleteModal 
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
+      <RoomDeleteModal 
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
         onConfirm={handleDeleteConfirm}
-        title="Xonani o'chirishni tasdiqlaysizmi?"
+      />
+
+      <RoomDetailsDrawer 
+        isOpen={!!detailsRoom}
+        onClose={() => setDetailsRoom(null)}
+        room={detailsRoom}
+        branchName={detailsRoom ? getBranchName(detailsRoom.branch_id) : ''}
       />
     </div>
   );
