@@ -1,158 +1,220 @@
-import React, { useState } from 'react';
-import { ArrowRightLeft, UserCircle2, Search, ArrowRight, CheckCircle2 } from 'lucide-react';
-import CustomSelect from '../../../components/CustomSelect';
-
-const mockGroups = [
-  { id: 1, name: 'Frontend-01' },
-  { id: 2, name: 'Backend-02' },
-  { id: 3, name: 'Python-03' },
-];
-
-const mockStudents = {
-  1: [
-    { id: 101, name: 'Ali Karimov' },
-    { id: 102, name: 'Vali Aliyev' },
-    { id: 103, name: 'Olim Rustamov' }
-  ],
-  2: [
-    { id: 201, name: 'Malika To\'rayeva' },
-    { id: 202, name: 'Sardor Qosimov' }
-  ],
-  3: []
-};
-
-const groupOptions = mockGroups.map(g => ({ label: g.name, value: g.id }));
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, ArrowRightLeft } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function StudentTransfer() {
-  const [fromGroup, setFromGroup] = useState(mockGroups[0].id);
-  const [toGroup, setToGroup] = useState(mockGroups[1].id);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [transfers, setTransfers] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Real loyihada bu state bo'lmasligi mumkin, lekin UI uchun:
-  const [studentsData, setStudentsData] = useState(mockStudents);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    student_id: '',
+    from_group_id: '',
+    to_group_id: '',
+    transfer_date: '',
+    reason: ''
+  });
 
-  const handleTransfer = () => {
-    if (!selectedStudent || fromGroup === toGroup) return;
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    // Move student logic
-    const student = studentsData[fromGroup].find(s => s.id === selectedStudent);
-    if (!student) return;
-
-    setStudentsData(prev => ({
-      ...prev,
-      [fromGroup]: prev[fromGroup].filter(s => s.id !== selectedStudent),
-      [toGroup]: [...(prev[toGroup] || []), student]
-    }));
-
-    setSelectedStudent(null);
-    setIsSuccess(true);
-    setTimeout(() => setIsSuccess(false), 3000);
+  const fetchData = async () => {
+    try {
+      const [trData, stData, grData] = await Promise.all([
+        api.StudentTransfers.getAll(),
+        api.Students.getAll(),
+        api.Groups.getAll()
+      ]);
+      setTransfers(trData);
+      setStudents(stData);
+      setGroups(grData);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const fromStudents = studentsData[fromGroup] || [];
+  const getStudentName = (id) => students.find(s => s.id === id)?.fullname || 'Unknown';
+  const getGroupName = (id) => groups.find(g => g.id === id)?.name || 'Unknown';
+
+  const studentOptions = students.map(s => ({ label: s.fullname, value: s.id }));
+  const groupOptions = groups.map(g => ({ label: g.name, value: g.id }));
+
+  const handleOpenModal = () => {
+    setFormData({
+      student_id: studentOptions.length > 0 ? studentOptions[0].value : '',
+      from_group_id: groupOptions.length > 0 ? groupOptions[0].value : '',
+      to_group_id: groupOptions.length > 1 ? groupOptions[1].value : (groupOptions.length > 0 ? groupOptions[0].value : ''),
+      transfer_date: '',
+      reason: ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.student_id || !formData.from_group_id || !formData.to_group_id || !formData.transfer_date) return;
+    if (formData.from_group_id === formData.to_group_id) {
+      alert("Yangi guruh eskisidan farq qilishi kerak.");
+      return;
+    }
+
+    try {
+      // 1. Create transfer history record
+      const created = await api.StudentTransfers.create(formData);
+      
+      // 2. Update actual group membership
+      const studentGroups = await api.StudentGroups.getAll();
+      const existingRecord = studentGroups.find(sg => 
+        sg.student_id === formData.student_id && 
+        sg.group_id === formData.from_group_id && 
+        sg.status === 'Active'
+      );
+      
+      if (existingRecord) {
+        await api.StudentGroups.update(existingRecord.id, { 
+          status: 'Left', 
+          left_at: formData.transfer_date 
+        });
+      }
+      
+      await api.StudentGroups.create({
+        student_id: formData.student_id,
+        group_id: formData.to_group_id,
+        joined_at: formData.transfer_date,
+        left_at: null,
+        status: 'Active'
+      });
+
+      setTransfers([...transfers, created]);
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const filteredTransfers = transfers.filter(tr => {
+    const sName = (getStudentName(tr.student_id) || '').toLowerCase();
+    return sName.includes(searchQuery.toLowerCase());
+  });
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-          <ArrowRightLeft className="text-indigo-600" size={32} />
-          Talabalarni Ko'chirish
-        </h1>
-        <p className="text-gray-500 mt-2">Bir guruhdan ikkinchi guruhga talabalarni o'tkazish</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 ">O'quvchi Ko'chirish</h1>
+          <p className="text-sm text-slate-500 ">O'quvchilarni bir guruhdan boshqa guruhga o'tkazish tarixi</p>
+        </div>
+        <Button onClick={() => handleOpenModal()} className="gap-2">
+          <Plus size={16} /> Yangi ko'chirish
+        </Button>
       </div>
 
-      {isSuccess && (
-        <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl flex items-center gap-3">
-          <CheckCircle2 size={24} className="text-green-500" />
-          <p className="font-medium">Talaba muvaffaqiyatli ko'chirildi!</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-6 items-start mt-8">
+      <Card>
+        <CardHeader className="pb-3 border-b border-border">
+          <div className="w-full sm:max-w-md">
+            <Input 
+              icon={Search} 
+              placeholder="O'quvchi ismi bo'yicha qidiring..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </CardHeader>
         
-        {/* Left Panel (From Group) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 z-20">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Qaysi guruhdan</h2>
-          <div className="mb-6">
-            <CustomSelect 
-              options={groupOptions}
-              value={fromGroup} 
-              onChange={val => { setFromGroup(val); setSelectedStudent(null); }}
-            />
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>O'quvchi</TableHead>
+                <TableHead>Eski Guruh</TableHead>
+                <TableHead>Yangi Guruh</TableHead>
+                <TableHead>Sana</TableHead>
+                <TableHead>Sabab</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTransfers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                    Ma'lumot topilmadi
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTransfers.map((tr) => (
+                  <TableRow key={tr.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600   flex items-center justify-center shrink-0">
+                          <ArrowRightLeft size={16} />
+                        </div>
+                        <span className="text-slate-900 ">{getStudentName(tr.student_id)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600 ">
+                      <span className="line-through text-slate-400  mr-2">{getGroupName(tr.from_group_id)}</span>
+                    </TableCell>
+                    <TableCell className="font-medium text-emerald-600 ">
+                      {getGroupName(tr.to_group_id)}
+                    </TableCell>
+                    <TableCell className="text-slate-600 ">
+                      {tr.transfer_date ? tr.transfer_date.substring(0,10) : '-'}
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-sm">
+                      {tr.reason || '-'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Talabani tanlang:</h3>
-            {fromStudents.map(student => (
-              <label 
-                key={student.id} 
-                className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedStudent === student.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent hover:bg-gray-50'}`}
-              >
-                <input 
-                  type="radio" 
-                  name="student" 
-                  className="hidden"
-                  checked={selectedStudent === student.id}
-                  onChange={() => setSelectedStudent(student.id)}
-                />
-                <UserCircle2 size={24} className={selectedStudent === student.id ? 'text-indigo-600' : 'text-gray-400'} />
-                <span className={`font-medium ${selectedStudent === student.id ? 'text-indigo-900' : 'text-gray-700'}`}>
-                  {student.name}
-                </span>
-              </label>
-            ))}
-            {fromStudents.length === 0 && (
-              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl">
-                Bu guruhda talabalar yo'q.
-              </div>
-            )}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="O'quvchini Boshqa Guruhga O'tkazish">
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">O'quvchi</label>
+            <CustomSelect options={studentOptions} value={formData.student_id} onChange={val => setFormData({...formData, student_id: val})} />
           </div>
-        </div>
-
-        {/* Action Center */}
-        <div className="flex flex-col items-center justify-center pt-8 md:pt-32">
-           <button 
-            onClick={handleTransfer}
-            disabled={!selectedStudent || fromGroup === toGroup}
-            className={`flex flex-col items-center justify-center h-16 w-16 rounded-full shadow-lg transition-all ${(!selectedStudent || fromGroup === toGroup) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-110 active:scale-95 cursor-pointer'}`}
-           >
-              <ArrowRight size={28} />
-           </button>
-           <span className="text-xs font-medium text-gray-500 mt-3 text-center">Ko'chirish</span>
-        </div>
-
-        {/* Right Panel (To Group) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 z-10">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Qaysi guruhga</h2>
-          <div className="mb-6">
-            <CustomSelect 
-              options={groupOptions.filter(g => g.value !== fromGroup)}
-              value={toGroup} 
-              onChange={val => setToGroup(val)}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Qaysi guruhdan</label>
+              <CustomSelect options={groupOptions} value={formData.from_group_id} onChange={val => setFormData({...formData, from_group_id: val})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Qaysi guruhga</label>
+              <CustomSelect options={groupOptions} value={formData.to_group_id} onChange={val => setFormData({...formData, to_group_id: val})} />
+            </div>
           </div>
-          
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Shu guruhdagi mavjud talabalar:</h3>
-             {(studentsData[toGroup] || []).map(student => (
-              <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
-                <UserCircle2 size={24} className="text-gray-400" />
-                <span className="font-medium text-gray-700">
-                  {student.name}
-                </span>
-              </div>
-            ))}
-            {(studentsData[toGroup] || []).length === 0 && (
-               <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                Hozircha talabalar yo'q.
-              </div>
-            )}
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">O'tkazish sanasi</label>
+            <Input required type="date" value={formData.transfer_date} onChange={e => setFormData({...formData, transfer_date: e.target.value})} />
           </div>
-        </div>
-
-      </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Sabab (ixtiyoriy)</label>
+            <Input value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} placeholder="Masalan: Vaqti to'g'ri kelmadi" />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="w-full">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

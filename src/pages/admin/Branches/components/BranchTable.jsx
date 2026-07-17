@@ -1,54 +1,54 @@
 import React from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table';
+import { TableContainer, EmptyTableState } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 export default function BranchTable({ branches, searchQuery, onEdit, onDelete }) {
+  if (branches.length === 0) {
+    return (
+      <TableContainer>
+        <EmptyTableState 
+          title={searchQuery ? "Qidiruvingiz bo'yicha filial topilmadi" : "Filiallar yo'q"} 
+          description={searchQuery ? "Qidiruv so'zini o'zgartirib ko'ring." : "Yangi filial qo'shing."} 
+        />
+      </TableContainer>
+    );
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-50 border-y border-gray-200">
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">#</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Filial nomi</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Manzili</th>
-            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Amallar</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {branches.length === 0 ? (
-            <tr>
-              <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                {searchQuery ? "Qidiruvingiz bo'yicha filial topilmadi" : "Ma'lumot topilmadi"}
-              </td>
-            </tr>
-          ) : (
-            branches.map((branch, index) => (
-              <tr key={branch.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4 text-sm text-gray-600">{index + 1}</td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{branch.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{branch.address}</td>
-                <td className="px-6 py-4 text-sm text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => onEdit(branch)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Tahrirlash"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => onDelete(branch.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="O'chirish"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <TableContainer>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-16 pl-4">#</TableHead>
+            <TableHead>Filial nomi</TableHead>
+            <TableHead>Manzili</TableHead>
+            <TableHead className="w-24 text-right pr-4">Amallar</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {branches.map((branch, index) => (
+            <TableRow key={branch.id} className="group">
+              <TableCell className="pl-4 text-slate-500 font-mono text-[11px]">{index + 1}</TableCell>
+              <TableCell className="font-medium text-slate-900">{branch.name}</TableCell>
+              <TableCell className="text-slate-600">{branch.address}</TableCell>
+              <TableCell className="pr-4 text-right">
+                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(branch)}>
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" className="text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(branch.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

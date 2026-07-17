@@ -1,187 +1,240 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, Percent } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import { PageHeader, TableContainer, SearchBar, EmptyTableState } from '@/components/ui/page-header';
 
 export default function Discounts() {
-  const [discounts, setDiscounts] = useState([
-    { id: 1, name: 'Family Discount', type: 'Percentage', value: '10%', status: 'Active', appliesTo: 'All Courses' },
-    { id: 2, name: 'Early Bird', type: 'Fixed Amount', value: '100,000 UZS', status: 'Active', appliesTo: 'Frontend' },
-    { id: 3, name: 'Summer Special', type: 'Percentage', value: '20%', status: 'Expired', appliesTo: 'Design' },
-    { id: 4, name: 'Referral Bonus', type: 'Fixed Amount', value: '50,000 UZS', status: 'Active', appliesTo: 'All Courses' },
-  ]);
+  const [discounts, setDiscounts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
-    type: 'Percentage',
-    value: '',
-    appliesTo: '',
-    status: 'Active',
+    percent: '',
+    sum: '',
+    comment: ''
   });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const data = await api.Discounts.getAll();
+      setDiscounts(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleOpenModal = (discount = null) => {
     if (discount) {
       setEditingId(discount.id);
-      setFormData({ 
-        name: discount.name, 
-        type: discount.type, 
-        value: discount.value, 
-        appliesTo: discount.appliesTo, 
-        status: discount.status 
+      setFormData({
+        name: discount.name,
+        percent: discount.percent || '',
+        sum: discount.sum || '',
+        comment: discount.comment || ''
       });
     } else {
       setEditingId(null);
-      setFormData({ name: '', type: 'Percentage', value: '', appliesTo: '', status: 'Active' });
+      setFormData({
+        name: '',
+        percent: '',
+        sum: '',
+        comment: ''
+      });
     }
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => setIsModalOpen(false);
-
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handleSubmit = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      setDiscounts(discounts.map((d) => d.id === editingId ? { ...d, ...formData } : d));
-    } else {
-      const newDiscount = {
-        id: discounts.length > 0 ? Math.max(...discounts.map((d) => d.id)) + 1 : 1,
-        ...formData,
+    if (!formData.name) return;
+
+    try {
+      const payload = {
+        name: formData.name,
+        percent: formData.percent ? Number(formData.percent) : null,
+        sum: formData.sum ? Number(formData.sum) : null,
+        comment: formData.comment
       };
-      setDiscounts([...discounts, newDiscount]);
-    }
-    handleCloseModal();
-  };
 
-  const handleDelete = (id) => {
-    setDiscounts(discounts.filter((d) => d.id !== id));
-  };
-
-  const confirmDelete = () => {
-    if (itemToDelete) {
-      handleDelete(itemToDelete);
-      setItemToDelete(null);
+      if (editingId) {
+        const updated = await api.Discounts.update(editingId, payload);
+        setDiscounts(discounts.map(d => d.id === editingId ? updated : d));
+      } else {
+        const created = await api.Discounts.create(payload);
+        setDiscounts([...discounts, created]);
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
     }
   };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Discounts.delete(deleteConfirmId);
+        setDiscounts(discounts.filter(d => d.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const filteredDiscounts = discounts.filter(d => 
+    (d.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Discounts</h1>
-          <p className="text-gray-500 text-sm mt-1">Configure and manage discount rules for courses.</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-sm">
-            + Add Discount
-          </button>
-        </div>
-      </div>
+    <div className="max-w-[1600px] mx-auto pb-12 px-6">
+      <PageHeader
+        title="Chegirmalar"
+        description="O'quvchilarga taqdim etiladigan chegirmalar ro'yxati"
+        actions={
+          <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Yangi chegirma
+          </Button>
+        }
+      />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
-              <tr>
-                <th className="py-4 px-6">ID</th>
-                <th className="py-4 px-6">Discount Name</th>
-                <th className="py-4 px-6">Type</th>
-                <th className="py-4 px-6">Value</th>
-                <th className="py-4 px-6">Applies To</th>
-                <th className="py-4 px-6">Status</th>
-                <th className="py-4 px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {discounts.map((discount) => (
-                <tr key={discount.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900">#{discount.id}</td>
-                  <td className="py-4 px-6 font-medium text-gray-900">{discount.name}</td>
-                  <td className="py-4 px-6">{discount.type}</td>
-                  <td className="py-4 px-6 font-semibold text-indigo-600">{discount.value}</td>
-                  <td className="py-4 px-6">{discount.appliesTo}</td>
-                  <td className="py-4 px-6">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      discount.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {discount.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-right space-x-3">
-                    <button onClick={() => handleOpenModal(discount)} className="text-indigo-600 hover:text-indigo-800 font-medium text-sm inline-flex items-center" title="Edit">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
-                    </button>
-                    <button onClick={() => setItemToDelete(discount.id)} className="text-red-600 hover:text-red-800 font-medium text-sm inline-flex items-center" title="Delete">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {discounts.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">No discounts found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <TableContainer>
+        <div className="p-3 border-b border-slate-100">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Chegirma nomi orqali qidiring..."
+            className="w-full sm:max-w-md"
+          />
         </div>
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">{editingId ? 'Edit Discount' : 'Add Discount'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Discount Name</label>
-                <input required name="name" value={formData.name} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select name="type" value={formData.type} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500">
-                    <option value="Percentage">Percentage</option>
-                    <option value="Fixed Amount">Fixed Amount</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
-                  <input required name="value" value={formData.value} onChange={handleChange} type="text" placeholder={formData.type === 'Percentage' ? 'e.g. 15%' : 'e.g. 50,000 UZS'} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Applies To</label>
-                <input required name="appliesTo" value={formData.appliesTo} onChange={handleChange} type="text" placeholder="e.g. All Courses, Frontend" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select name="status" value={formData.status} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500">
-                  <option value="Active">Active</option>
-                  <option value="Expired">Expired</option>
-                </select>
-              </div>
-              <div className="pt-4 flex justify-end space-x-3">
-                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Save</button>
-              </div>
-            </form>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        </div>
-      )}
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Nomi</TableHead>
+                <TableHead>Miqdori</TableHead>
+                <TableHead>Izoh</TableHead>
+                <TableHead className="text-right">Amallar</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDiscounts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="p-0">
+                    <EmptyTableState 
+                      icon={Percent}
+                      title="Chegirmalar topilmadi" 
+                      description="Hozircha hech qanday chegirma turi kiritilmagan yoki qidiruv natijasi bo'sh." 
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDiscounts.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-600   flex items-center justify-center shrink-0">
+                          <Percent size={16} />
+                        </div>
+                        <span className="text-slate-900 ">{d.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold text-emerald-600 ">
+                      {d.percent ? `${d.percent}%` : d.sum ? `${new Intl.NumberFormat('uz-UZ').format(d.sum)} UZS` : '-'}
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-sm max-w-xs truncate">
+                      {d.comment || '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(d)}>
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50 " onClick={() => setDeleteConfirmId(d.id)}>
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </TableContainer>
 
-      {itemToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 text-center">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Haqiqatan ham o'chirmoqchimisiz?</h2>
-            <p className="text-gray-500 text-sm mb-6">Bu amalni ortga qaytarib bo'lmaydi.</p>
-            <div className="flex justify-center space-x-3">
-              <button type="button" onClick={() => setItemToDelete(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Bekor qilish</button>
-              <button type="button" onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">O'chirish</button>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Chegirmani Tahrirlash' : "Yangi Chegirma Qo'shish"}>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Chegirma nomi</label>
+            <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Masalan: Oila chegirmasi" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Foizi (%)</label>
+              <Input 
+                type="number" 
+                min="0" 
+                max="100" 
+                value={formData.percent} 
+                onChange={e => setFormData({...formData, percent: e.target.value, sum: e.target.value ? '' : formData.sum})} 
+                placeholder="10" 
+                disabled={!!formData.sum}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Summasi (UZS)</label>
+              <Input 
+                type="number" 
+                min="0" 
+                value={formData.sum} 
+                onChange={e => setFormData({...formData, sum: e.target.value, percent: e.target.value ? '' : formData.percent})} 
+                placeholder="50000" 
+                disabled={!!formData.percent}
+              />
             </div>
           </div>
+          <p className="text-xs text-slate-500">Iltimos, foiz yoki summa kiriting (ikkalasini emas). Birini ishlatsangiz ikkinchisi o'chadi.</p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Izoh</label>
+            <Input value={formData.comment} onChange={e => setFormData({...formData, comment: e.target.value})} placeholder="Qisqacha ma'lumot..." />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="w-full">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
+        <div className="space-y-4">
+          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

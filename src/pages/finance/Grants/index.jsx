@@ -1,162 +1,240 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, Award } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import { PageHeader, TableContainer, SearchBar, EmptyTableState } from '@/components/ui/page-header';
 
 export default function Grants() {
-  const [grants, setGrants] = useState([
-    { id: 1, studentName: 'Dildora Umarova', amount: '1,000,000 UZS', dateAwarded: '2026-07-01', reason: 'Top Student', status: 'Approved' },
-    { id: 2, studentName: 'Bekzod Karimov', amount: '500,000 UZS', dateAwarded: '2026-07-05', reason: 'Financial Aid', status: 'Pending' },
-    { id: 3, studentName: 'Sardor Ibragimov', amount: '750,000 UZS', dateAwarded: '2026-06-20', reason: 'Competition Winner', status: 'Approved' },
-  ]);
+  const [grants, setGrants] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
   const [formData, setFormData] = useState({
-    studentName: '',
-    amount: '',
-    reason: '',
-    dateAwarded: '',
+    name: '',
+    percent: '',
+    sum: '',
+    comment: ''
   });
 
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setFormData({ studentName: '', amount: '', reason: '', dateAwarded: '' });
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newGrant = {
-      id: grants.length > 0 ? Math.max(...grants.map((g) => g.id)) + 1 : 1,
-      ...formData,
-      status: 'Pending',
-    };
-    setGrants([...grants, newGrant]);
-    handleCloseModal();
-  };
-
-  const handleApprove = (id) => {
-    setGrants(grants.map(g => g.id === id ? { ...g, status: 'Approved' } : g));
-  };
-
-  const handleDelete = (id) => {
-    setGrants(grants.filter(g => g.id !== id));
-  };
-
-  const confirmDelete = () => {
-    if (itemToDelete) {
-      handleDelete(itemToDelete);
-      setItemToDelete(null);
+  const fetchData = async () => {
+    try {
+      const data = await api.Grants.getAll();
+      setGrants(data);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleOpenModal = (grant = null) => {
+    if (grant) {
+      setEditingId(grant.id);
+      setFormData({
+        name: grant.name,
+        percent: grant.percent || '',
+        sum: grant.sum || '',
+        comment: grant.comment || ''
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        name: '',
+        percent: '',
+        sum: '',
+        comment: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.name) return;
+
+    try {
+      const payload = {
+        name: formData.name,
+        percent: formData.percent ? Number(formData.percent) : null,
+        sum: formData.sum ? Number(formData.sum) : null,
+        comment: formData.comment
+      };
+
+      if (editingId) {
+        const updated = await api.Grants.update(editingId, payload);
+        setGrants(grants.map(g => g.id === editingId ? updated : g));
+      } else {
+        const created = await api.Grants.create(payload);
+        setGrants([...grants, created]);
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Grants.delete(deleteConfirmId);
+        setGrants(grants.filter(g => g.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const filteredGrants = grants.filter(g => 
+    (g.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6 relative">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Grants</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage student grants and scholarships.</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={handleOpenModal} className="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-sm">
-            + Award Grant
-          </button>
-        </div>
-      </div>
+    <div className="max-w-[1600px] mx-auto pb-12 px-6">
+      <PageHeader
+        title="Grantlar"
+        description="Iqtidorli o'quvchilarga beriladigan maxsus grantlar"
+        actions={
+          <Button onClick={() => handleOpenModal()} className="bg-purple-600 hover:bg-purple-700 text-white">
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Yangi grant
+          </Button>
+        }
+      />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
-              <tr>
-                <th className="py-4 px-6">ID</th>
-                <th className="py-4 px-6">Student Name</th>
-                <th className="py-4 px-6">Amount</th>
-                <th className="py-4 px-6">Reason</th>
-                <th className="py-4 px-6">Date Awarded</th>
-                <th className="py-4 px-6">Status</th>
-                <th className="py-4 px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {grants.map((grant) => (
-                <tr key={grant.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900">#{grant.id}</td>
-                  <td className="py-4 px-6 font-medium text-gray-900">{grant.studentName}</td>
-                  <td className="py-4 px-6 font-semibold text-emerald-600">{grant.amount}</td>
-                  <td className="py-4 px-6">{grant.reason}</td>
-                  <td className="py-4 px-6">{grant.dateAwarded}</td>
-                  <td className="py-4 px-6">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      grant.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {grant.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-right space-x-3">
-                    {grant.status === 'Pending' && (
-                      <button onClick={() => handleApprove(grant.id)} className="text-emerald-600 hover:text-emerald-800 font-medium text-sm inline-flex items-center" title="Approve">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      </button>
-                    )}
-                    <button onClick={() => setItemToDelete(grant.id)} className="text-red-600 hover:text-red-800 font-medium text-sm inline-flex items-center" title="Delete">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {grants.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">No grants awarded yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <TableContainer>
+        <div className="p-3 border-b border-slate-100">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Grant nomi orqali qidiring..."
+            className="w-full sm:max-w-md"
+          />
         </div>
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Award Grant</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
-                <input required name="studentName" value={formData.studentName} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                <input required name="amount" value={formData.amount} onChange={handleChange} type="text" placeholder="e.g. 500,000 UZS" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                <input required name="reason" value={formData.reason} onChange={handleChange} type="text" placeholder="e.g. Financial Aid" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input required name="dateAwarded" value={formData.dateAwarded} onChange={handleChange} type="date" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div className="pt-4 flex justify-end space-x-3">
-                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Award</button>
-              </div>
-            </form>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        </div>
-      )}
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Grant Nomi</TableHead>
+                <TableHead>Miqdori</TableHead>
+                <TableHead>Izoh</TableHead>
+                <TableHead className="text-right">Amallar</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredGrants.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="p-0">
+                    <EmptyTableState 
+                      icon={Award}
+                      title="Grantlar topilmadi" 
+                      description="Hozircha hech qanday grant kiritilmagan yoki qidiruv natijasi bo'sh." 
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredGrants.map((g) => (
+                  <TableRow key={g.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600   flex items-center justify-center shrink-0">
+                          <Award size={16} />
+                        </div>
+                        <span className="text-slate-900 ">{g.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold text-emerald-600 ">
+                      {g.percent ? `${g.percent}%` : g.sum ? `${new Intl.NumberFormat('uz-UZ').format(g.sum)} UZS` : '-'}
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-sm max-w-xs truncate">
+                      {g.comment || '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(g)}>
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50 " onClick={() => setDeleteConfirmId(g.id)}>
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </TableContainer>
 
-      {itemToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 text-center">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Haqiqatan ham o'chirmoqchimisiz?</h2>
-            <p className="text-gray-500 text-sm mb-6">Bu amalni ortga qaytarib bo'lmaydi.</p>
-            <div className="flex justify-center space-x-3">
-              <button type="button" onClick={() => setItemToDelete(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Bekor qilish</button>
-              <button type="button" onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">O'chirish</button>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Grantni Tahrirlash' : "Yangi Grant Qo'shish"}>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Grant nomi</label>
+            <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Masalan: 100% Grant" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Foizi (%)</label>
+              <Input 
+                type="number" 
+                min="0" 
+                max="100" 
+                value={formData.percent} 
+                onChange={e => setFormData({...formData, percent: e.target.value, sum: e.target.value ? '' : formData.sum})} 
+                placeholder="100" 
+                disabled={!!formData.sum}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Summasi (UZS)</label>
+              <Input 
+                type="number" 
+                min="0" 
+                value={formData.sum} 
+                onChange={e => setFormData({...formData, sum: e.target.value, percent: e.target.value ? '' : formData.percent})} 
+                placeholder="Masalan: 0" 
+                disabled={!!formData.percent}
+              />
             </div>
           </div>
+          <p className="text-xs text-slate-500">Iltimos, foiz yoki summa kiriting (ikkalasini emas). Birini ishlatsangiz ikkinchisi o'chadi.</p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Izoh</label>
+            <Input value={formData.comment} onChange={e => setFormData({...formData, comment: e.target.value})} placeholder="Qisqacha ma'lumot..." />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="w-full">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
+        <div className="space-y-4">
+          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

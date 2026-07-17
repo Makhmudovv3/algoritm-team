@@ -1,215 +1,278 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Users, Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
-import ConfirmModal from '../../../components/ConfirmModal';
-import CustomSelect from '../../../components/CustomSelect';
-
-const days = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
-const times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-
-const dayOptions = days.map(d => ({ label: d, value: d }));
-const timeOptions = times.map(t => ({ label: t, value: t }));
-const colorOptions = [
-  { label: 'Indigo', value: 'bg-indigo-100 border-indigo-200 text-indigo-800', colorClass: 'bg-indigo-500' },
-  { label: "Ko'k", value: 'bg-blue-100 border-blue-200 text-blue-800', colorClass: 'bg-blue-500' },
-  { label: 'Yashil', value: 'bg-green-100 border-green-200 text-green-800', colorClass: 'bg-green-500' },
-  { label: 'Siyohrang', value: 'bg-purple-100 border-purple-200 text-purple-800', colorClass: 'bg-purple-500' },
-  { label: 'Qizil', value: 'bg-rose-100 border-rose-200 text-rose-800', colorClass: 'bg-rose-500' },
-  { label: 'Sariq', value: 'bg-amber-100 border-amber-200 text-amber-800', colorClass: 'bg-amber-500' }
-];
-
-const initialSchedules = [
-  { id: 1, group: 'Frontend-01', room: 'Xona 1 (Lochin)', teacher: 'John Doe', day: 'Dushanba', time: '14:00', color: 'bg-blue-100 border-blue-200 text-blue-800' },
-  { id: 2, group: 'Backend-02', room: 'Xona 2 (Burgut)', teacher: 'Jane Smith', day: 'Seshanba', time: '18:00', color: 'bg-green-100 border-green-200 text-green-800' },
-  { id: 3, group: 'Python-03', room: 'Xona 3 (Shunqor)', teacher: 'Ali Valiyev', day: 'Chorshanba', time: '10:00', color: 'bg-purple-100 border-purple-200 text-purple-800' },
-  { id: 4, group: 'Frontend-01', room: 'Xona 1 (Lochin)', teacher: 'John Doe', day: 'Chorshanba', time: '14:00', color: 'bg-blue-100 border-blue-200 text-blue-800' },
-  { id: 5, group: 'Graphic Design', room: 'Xona 4 (Dizayn)', teacher: 'Murod Rahimov', day: 'Juma', time: '16:00', color: 'bg-rose-100 border-rose-200 text-rose-800' },
-];
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Calendar, Clock, MapPin, Layers } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Modal } from '@/components/ui/modal';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function Schedules() {
-  const [schedules, setSchedules] = useState(initialSchedules);
+  const [schedules, setSchedules] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [groupFilter, setGroupFilter] = useState('');
+  const [dayFilter, setDayFilter] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
   const [formData, setFormData] = useState({
-    group: 'Frontend-01', room: 'Xona 1 (Lochin)', teacher: 'John Doe', day: 'Dushanba', time: '10:00', color: 'bg-indigo-100 border-indigo-200 text-indigo-800'
+    group_id: '',
+    room_id: '',
+    day_of_week: '1',
+    start_time: '',
+    end_time: ''
   });
 
-  const getSchedule = (day, time) => {
-    return schedules.find(s => s.day === day && s.time === time);
+  const dayNames = {
+    1: 'Dushanba',
+    2: 'Seshanba',
+    3: 'Chorshanba',
+    4: 'Payshanba',
+    5: 'Juma',
+    6: 'Shanba',
+    7: 'Yakshanba'
   };
 
-  const handleOpenModal = (day = 'Dushanba', time = '10:00') => {
-    setFormData({ ...formData, day, time });
-    setIsModalOpen(true);
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const closeModal = () => setIsModalOpen(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Remove existing schedule at that slot if any
-    const filtered = schedules.filter(s => !(s.day === formData.day && s.time === formData.time));
-    setSchedules([...filtered, { ...formData, id: Date.now() }]);
-    closeModal();
-  };
-
-  const handleDelete = (e, id) => {
-    e.stopPropagation();
-    setConfirmDeleteId(id);
-  };
-
-  const confirmDelete = () => {
-    if (confirmDeleteId) {
-      setSchedules(schedules.filter(s => s.id !== confirmDeleteId));
-      setConfirmDeleteId(null);
+  const fetchData = async () => {
+    try {
+      const [sData, gData, rData] = await Promise.all([
+        api.Schedules.getAll(),
+        api.Groups.getAll(),
+        api.Rooms.getAll()
+      ]);
+      setSchedules(sData);
+      setGroups(gData);
+      setRooms(rData);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const groupOptions = groups.map(g => ({ label: g.name, value: g.id }));
+  const roomOptions = rooms.map(r => ({ label: r.name, value: r.id }));
+  const dayOptions = Object.keys(dayNames).map(key => ({ label: dayNames[key], value: key }));
+
+  const getGroupName = (id) => groups.find(g => g.id === id)?.name || 'Unknown';
+  const getRoomName = (id) => rooms.find(r => r.id === id)?.name || 'Unknown';
+
+  const handleOpenModal = (s = null) => {
+    if (s) {
+      setEditingId(s.id);
+      setFormData({
+        group_id: s.group_id,
+        room_id: s.room_id,
+        day_of_week: String(s.day_of_week),
+        start_time: s.start_time,
+        end_time: s.end_time
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        group_id: groupOptions.length > 0 ? groupOptions[0].value : '',
+        room_id: roomOptions.length > 0 ? roomOptions[0].value : '',
+        day_of_week: '1',
+        start_time: '',
+        end_time: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.group_id || !formData.room_id || !formData.start_time || !formData.end_time) return;
+
+    try {
+      const payload = {
+        group_id: formData.group_id,
+        room_id: formData.room_id,
+        day_of_week: Number(formData.day_of_week),
+        start_time: formData.start_time,
+        end_time: formData.end_time
+      };
+
+      if (editingId) {
+        const updated = await api.Schedules.update(editingId, payload);
+        setSchedules(schedules.map(s => s.id === editingId ? updated : s));
+      } else {
+        const created = await api.Schedules.create(payload);
+        setSchedules([...schedules, created]);
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      try {
+        await api.Schedules.delete(deleteConfirmId);
+        setSchedules(schedules.filter(s => s.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const filteredSchedules = schedules.filter(s => {
+    const matchGroup = groupFilter ? String(s.group_id) === String(groupFilter) : true;
+    const matchDay = dayFilter ? String(s.day_of_week) === String(dayFilter) : true;
+    return matchGroup && matchDay;
+  });
+
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Dars Jadvallari</h1>
-          <p className="text-gray-500 mt-1">Haftalik dars jadvali taqsimoti</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 ">Dars Jadvali</h1>
+          <p className="text-sm text-slate-500 ">Haftalik dars jadvallarini rejalashtirish va boshqarish</p>
         </div>
+        <Button onClick={() => handleOpenModal()} className="gap-2">
+          <Plus size={16} /> Yangi jadval
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3 border-b border-border">
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <div className="w-full sm:w-64">
+              <CustomSelect 
+                options={[{label: "Barcha guruhlar", value: ""}, ...groupOptions]} 
+                value={groupFilter} 
+                onChange={setGroupFilter} 
+              />
+            </div>
+            <div className="w-full sm:w-64">
+              <CustomSelect 
+                options={[{label: "Barcha kunlar", value: ""}, ...dayOptions]} 
+                value={dayFilter} 
+                onChange={setDayFilter} 
+              />
+            </div>
+          </div>
+        </CardHeader>
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-            <button className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"><ChevronLeft size={20} className="text-gray-600"/></button>
-            <span className="px-4 font-semibold text-gray-800">Ushbu hafta</span>
-            <button className="p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"><ChevronRight size={20} className="text-gray-600"/></button>
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <button onClick={() => handleOpenModal()} className="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center">
-             <Plus size={22} />
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
-        <div className="min-w-[900px]">
-          <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 sticky top-0 z-10">
-            <div className="p-4 border-r border-gray-200 text-center font-semibold text-gray-500 flex items-center justify-center gap-2">
-              <Clock size={18} /> Vaqt
-            </div>
-            {days.map((day) => (
-              <div key={day} className="p-4 border-r border-gray-200 last:border-r-0 text-center">
-                <span className="font-bold text-gray-800">{day}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="divide-y divide-gray-200">
-            {times.map(time => (
-              <div key={time} className="grid grid-cols-7 relative group">
-                <div className="p-4 border-r border-gray-200 flex items-center justify-center font-medium text-gray-500 bg-gray-50/30">
-                  {time}
-                </div>
-                
-                {days.map(day => {
-                  const schedule = getSchedule(day, time);
-                  return (
-                    <div key={`${day}-${time}`} className="border-r border-gray-200 last:border-r-0 p-2 min-h-[120px] hover:bg-gray-50/50 transition-colors relative group/cell">
-                      {schedule ? (
-                        <div className={`w-full h-full rounded-lg border p-3 flex flex-col gap-2 shadow-sm hover:shadow-md transition-shadow relative ${schedule.color}`}>
-                          <button onClick={(e) => handleDelete(e, schedule.id)} className="absolute top-2 right-2 p-1 bg-white/50 hover:bg-white text-red-500 rounded-md opacity-0 group-hover/cell:opacity-100 transition-opacity cursor-pointer">
-                            <Trash2 size={14} />
-                          </button>
-                          <div className="font-bold text-sm leading-tight flex justify-between items-start pr-5">
-                            {schedule.group}
-                          </div>
-                          <div className="text-xs font-medium opacity-90 flex items-center gap-1">
-                             <Users size={12} /> {schedule.teacher}
-                          </div>
-                          <div className="text-xs font-medium opacity-90 flex items-center gap-1 mt-auto">
-                            <MapPin size={12} /> {schedule.room}
-                          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Guruh</TableHead>
+                <TableHead>Hafta Kuni</TableHead>
+                <TableHead>Vaqt</TableHead>
+                <TableHead>Xona</TableHead>
+                <TableHead className="text-right">Amallar</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSchedules.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                    Ma'lumot topilmadi
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredSchedules.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600   flex items-center justify-center shrink-0">
+                          <Layers size={16} />
                         </div>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-opacity">
-                          <button onClick={() => handleOpenModal(day, time)} className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-600 flex items-center justify-center cursor-pointer transition-colors">
-                            <Plus size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+                        <span className="text-slate-900 ">{getGroupName(s.group_id)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600 ">
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Calendar size={14} className="text-slate-400" />
+                        <span className="font-medium">{dayNames[s.day_of_week] || 'Unknown'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600 ">
+                        <Clock size={14} />
+                        {s.start_time.substring(0,5)} - {s.end_time.substring(0,5)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-sm text-slate-600 ">
+                        <MapPin size={14} className="text-slate-400" />
+                        <span>{getRoomName(s.room_id)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(s)}>
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50 " onClick={() => setDeleteConfirmId(s.id)}>
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor: 'rgba(0,0,0,0.4)'}}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
-              <h2 className="text-xl font-bold text-gray-900">Jadvalga dars qo'shish</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer">
-                 ✕
-              </button>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Jadvalni Tahrirlash' : "Yangi Jadval Qo'shish"}>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Guruh</label>
+            <CustomSelect options={groupOptions} value={formData.group_id} onChange={val => setFormData({...formData, group_id: val})} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Hafta Kuni</label>
+            <CustomSelect options={dayOptions} value={formData.day_of_week} onChange={val => setFormData({...formData, day_of_week: val})} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700  mb-1">Xona</label>
+            <CustomSelect options={roomOptions} value={formData.room_id} onChange={val => setFormData({...formData, room_id: val})} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Boshlanish vaqti</label>
+              <Input required type="time" value={formData.start_time} onChange={e => setFormData({...formData, start_time: e.target.value})} />
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kun</label>
-                  <CustomSelect 
-                    options={dayOptions} 
-                    value={formData.day} 
-                    onChange={val => setFormData({...formData, day: val})} 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vaqti</label>
-                  <CustomSelect 
-                    options={timeOptions} 
-                    value={formData.time} 
-                    onChange={val => setFormData({...formData, time: val})} 
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Guruh (Mavzu)</label>
-                <input required type="text" value={formData.group} onChange={e => setFormData({...formData, group: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">O'qituvchi</label>
-                  <input required type="text" value={formData.teacher} onChange={e => setFormData({...formData, teacher: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Xona</label>
-                  <input required type="text" value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700  mb-1">Tugash vaqti</label>
+              <Input required type="time" value={formData.end_time} onChange={e => setFormData({...formData, end_time: e.target.value})} />
+            </div>
+          </div>
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="w-full" onClick={() => setIsModalOpen(false)}>Bekor qilish</Button>
+            <Button type="submit" className="w-full">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rang</label>
-                <CustomSelect 
-                  options={colorOptions} 
-                  value={formData.color} 
-                  onChange={val => setFormData({...formData, color: val})} 
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={closeModal} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors cursor-pointer">Bekor qilish</button>
-                <button type="submit" className="flex-1 px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors cursor-pointer">Saqlash</button>
-              </div>
-            </form>
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
+        <div className="space-y-4">
+          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
+            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
           </div>
         </div>
-      )}
-
-      <ConfirmModal 
-        isOpen={!!confirmDeleteId} 
-        onClose={() => setConfirmDeleteId(null)}
-        onConfirm={confirmDelete}
-        title="Jadvaldan o'chirish"
-        message="Bu darsni jadvaldan olib tashlamoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi."
-      />
+      </Modal>
     </div>
   );
 }

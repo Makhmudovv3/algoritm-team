@@ -1,182 +1,191 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
-import UserTable from './components/UserTable';
-import UserModal from './components/UserModal';
-import DeleteModal from '../../../components/common/DeleteModal';
-import { getUsers, saveUsers, getRoles } from '../../../utils/db';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Edit2, Trash2, Shield } from 'lucide-react';
+import { api } from '../../../services/api';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Modal } from '@/components/ui/modal';
+import CustomSelect from '@/components/CustomSelect';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function Users() {
-  const [roles] = useState(getRoles() || []);
-  const [users, setUsers] = useState(getUsers() || []);
+  const [data, setData] = useState({ roles: [], users: [], loading: true });
+  const [filters, setFilters] = useState({ search: '', role: '' });
+  const [modal, setModal] = useState({ open: false, editingId: null, deleteId: null });
+  const [form, setForm] = useState({ fullname: '', phone: '+998 ', email: '', role_id: '', is_active: 'true' });
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  
-  const [formData, setFormData] = useState({ 
-    fullname: '', phone: '+998 ', email: '', 
-    role_id: '', is_active: true 
+  useEffect(() => {
+    Promise.all([api.Users.getAll(), api.Roles.getAll()])
+      .then(([users, roles]) => setData({ users, roles, loading: false }))
+      .catch(console.error);
+  }, []);
+
+  const roleOpts = data.roles.map(r => ({ label: r.name, value: r.id }));
+  const getRoleName = id => data.roles.find(r => r.id === id)?.name || 'Unknown';
+
+  const filtered = data.users.filter(u => {
+    const s = filters.search.toLowerCase();
+    return ((u.fullname||'').toLowerCase().includes(s) || (u.email||'').toLowerCase().includes(s)) &&
+           (filters.role ? u.role_id === filters.role : true);
   });
 
-  const getRoleName = (roleId) => {
-    // role.id is a UUID (string) now
-    const role = roles.find(r => String(r.id) === String(roleId));
-    return role ? role.name : 'Noma\'lum';
+  const openModal = (u = null) => {
+    setForm(u ? { fullname: u.fullname, phone: u.phone, email: u.email, role_id: u.role_id, is_active: String(u.is_active) } : { fullname: '', phone: '+998 ', email: '', role_id: roleOpts[0]?.value || '', is_active: 'true' });
+    setModal({ ...modal, open: true, editingId: u?.id || null });
   };
 
-  const filteredUsers = users.filter(user => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = user.fullname.toLowerCase().includes(searchLower) || user.email.toLowerCase().includes(searchLower);
-    const matchesRole = roleFilter === 'all' || String(user.role_id) === String(roleFilter);
-    return matchesSearch && matchesRole;
-  });
-
-  const handleOpenModal = (user = null) => {
-    if (user) {
-      setEditingUser(user);
-      setFormData({ 
-        fullname: user.fullname, 
-        phone: user.phone, 
-        email: user.email, 
-        role_id: user.role_id, 
-        is_active: user.is_active 
-      });
-    } else {
-      setEditingUser(null);
-      setFormData({ 
-        fullname: '', phone: '+998 ', email: '', 
-        role_id: roles.length > 0 ? roles[0].id : '', 
-        is_active: true 
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingUser(null);
-    setFormData({ fullname: '', phone: '', email: '', role_id: '', is_active: true });
-  };
-
-  const handleSave = (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    if (!formData.fullname || !formData.phone || !formData.role_id) return;
-
-    let newUsers;
-    if (editingUser) {
-      newUsers = users.map(u => 
-        u.id === editingUser.id 
-          ? { ...u, fullname: formData.fullname, phone: formData.phone, email: formData.email, role_id: formData.role_id, is_active: formData.is_active } 
-          : u
-      );
-    } else {
-      const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-      const today = new Date().toISOString();
-      newUsers = [...users, { 
-        id: newId, 
-        fullname: formData.fullname, 
-        phone: formData.phone, 
-        email: formData.email, 
-        role_id: formData.role_id, 
-        is_active: formData.is_active,
-        created_at: today
-      }];
-    }
-    
-    setUsers(newUsers);
-    saveUsers(newUsers);
-    handleCloseModal();
+    try {
+      const p = { ...form, is_active: form.is_active === 'true' };
+      if (modal.editingId) {
+        const up = await api.Users.update(modal.editingId, p);
+        setData(d => ({ ...d, users: d.users.map(x => x.id === modal.editingId ? up : x) }));
+      } else {
+        const cr = await api.Users.create({ ...p, password_hash: 'mock' });
+        setData(d => ({ ...d, users: [...d.users, cr] }));
+      }
+      setModal({ ...modal, open: false });
+    } catch (err) { console.error(err); }
   };
 
-  const handleDelete = (id) => {
-    setItemToDelete(id);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (itemToDelete) {
-      const newUsers = users.filter(u => u.id !== itemToDelete);
-      setUsers(newUsers);
-      saveUsers(newUsers);
-      setItemToDelete(null);
-    }
+  const del = async () => {
+    try {
+      await api.Users.delete(modal.deleteId);
+      setData(d => ({ ...d, users: d.users.filter(u => u.id !== modal.deleteId) }));
+      setModal({ ...modal, deleteId: null });
+    } catch (err) { console.error(err); }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Xodimlar</h1>
-          <p className="text-sm text-gray-500 mt-1">Tizim foydalanuvchilari va xodimlarni boshqarish</p>
-        </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          Yangi xodim
-        </button>
-      </div>
+    <div className="space-y-4 max-w-5xl mx-auto pb-8">
+      <PageHeader
+        title="Xodimlar"
+        description="Tizim foydalanuvchilari va xodimlarni boshqarish"
+        actions={
+          <Button size="sm" onClick={() => openModal()} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-3.5 w-3.5" />
+            Yangi xodim
+          </Button>
+        }
+      />
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
+      <Card className="border-slate-200 shadow-sm bg-white overflow-visible rounded-lg">
+        <div className="p-3 border-b border-slate-200 bg-white flex flex-col sm:flex-row gap-3 relative z-20">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Ism yoki email bo'yicha qidiruv..."
+              value={filters.search}
+              onChange={e => setFilters({...filters, search: e.target.value})}
+              className="h-8 w-full pl-8 pr-3 text-[13px] bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
           </div>
-          <input 
-            type="text" 
-            placeholder="Ism yoki email orqali qidiring..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors"
-          />
+          <div className="w-full sm:w-48 h-8">
+            <CustomSelect options={[{label: "Barcha rollar", value: ""}, ...roleOpts]} value={filters.role} onChange={v => setFilters({...filters, role: v})} />
+          </div>
         </div>
         
-        <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter size={18} className="text-gray-400" />
+        {data.loading ? (
+          <div className="flex justify-center py-12"><div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 uppercase">Xodim</TableHead>
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 uppercase">Aloqa</TableHead>
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 uppercase">Rol</TableHead>
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 uppercase">Holat</TableHead>
+                  <TableHead className="h-8 px-3 py-2 text-[13px] font-medium text-slate-500 text-right w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-[13px] text-slate-500">Xodimlar topilmadi</TableCell></TableRow>
+                ) : (
+                  filtered.map(user => (
+                    <TableRow key={user.id} className="group hover:bg-slate-50/50 border-b border-slate-100 last:border-0 transition-colors">
+                      <TableCell className="px-3 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-medium text-[11px] uppercase">
+                            {user.fullname.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="text-[13px] font-medium text-slate-900">{user.fullname}</div>
+                            <div className="text-[12px] text-slate-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-[13px] text-slate-600">{user.phone}</TableCell>
+                      <TableCell className="px-3 py-2">
+                        <div className="flex items-center gap-1.5 text-[13px] text-slate-600">
+                          <Shield size={12} className="text-slate-400" />
+                          <span>{getRoleName(user.role_id)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <Badge variant="outline" className={`text-[11px] h-5 px-1.5 font-medium border-0 ${user.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                          {user.is_active ? 'Faol' : 'Nofaol'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" onClick={() => openModal(user)}><Edit2 size={12} /></Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" onClick={() => setModal({...modal, deleteId: user.id})}><Trash2 size={12} /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors appearance-none bg-white cursor-pointer"
-          >
-            <option value="all">Barcha rollar</option>
-            {roles.map(role => (
-              <option key={role.id} value={role.id}>{role.name}</option>
-            ))}
-          </select>
+        )}
+      </Card>
+
+      <Modal isOpen={modal.open} onClose={() => setModal({...modal, open: false})} title={modal.editingId ? 'Xodimni tahrirlash' : "Yangi xodim"}>
+        <form onSubmit={save} className="space-y-4 pt-4">
+          <div className="space-y-1.5">
+            <label className="block text-[13px] font-medium text-slate-700">F.I.Sh. (To'liq ism)</label>
+            <input required value={form.fullname} onChange={e => setForm({...form, fullname: e.target.value})} className="h-8 w-full px-3 text-[13px] border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Masalan: Sardor Karimov" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[13px] font-medium text-slate-700">Telefon raqam</label>
+            <input required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-8 w-full px-3 text-[13px] border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[13px] font-medium text-slate-700">Email</label>
+            <input required type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-8 w-full px-3 text-[13px] border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="sardor@example.com" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-medium text-slate-700">Rol</label>
+              <div className="h-8"><CustomSelect options={roleOpts} value={form.role_id} onChange={v => setForm({...form, role_id: v})} /></div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-medium text-slate-700">Holat</label>
+              <div className="h-8"><CustomSelect options={[{label:'Faol',value:'true'},{label:'Nofaol',value:'false'}]} value={form.is_active} onChange={v => setForm({...form, is_active: v})} /></div>
+            </div>
+          </div>
+          <div className="pt-4 flex justify-end gap-2 border-t border-slate-100 mt-6">
+            <Button type="button" variant="outline" className="h-8 text-[13px] px-3 border-slate-200" onClick={() => setModal({...modal, open: false})}>Bekor qilish</Button>
+            <Button type="submit" className="h-8 text-[13px] px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Saqlash</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!modal.deleteId} onClose={() => setModal({...modal, deleteId: null})} title="Xodimni o'chirish">
+        <div className="pt-4">
+          <p className="text-[13px] text-slate-600 mb-6">Rostdan ham bu xodimni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <Button variant="outline" className="h-8 text-[13px] px-3 border-slate-200" onClick={() => setModal({...modal, deleteId: null})}>Bekor qilish</Button>
+            <Button variant="destructive" className="h-8 text-[13px] px-3 bg-red-600 hover:bg-red-700 text-white shadow-sm" onClick={del}>O'chirish</Button>
+          </div>
         </div>
-      </div>
-
-      <UserTable 
-        users={filteredUsers}
-        searchQuery={searchQuery}
-        roleFilter={roleFilter}
-        getRoleName={getRoleName}
-        onEdit={handleOpenModal}
-        onDelete={handleDelete}
-      />
-
-      <UserModal 
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
-        formData={formData}
-        setFormData={setFormData}
-        roles={roles}
-        isEditing={!!editingUser}
-      />
-
-      <DeleteModal 
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleDeleteConfirm}
-        title="Xodimni o'chirishni tasdiqlaysizmi?"
-      />
+      </Modal>
     </div>
   );
 }
