@@ -34,7 +34,7 @@ export default function MainLayout() {
   }, [isCollapsed]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8FAFC]">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar 
         isOpen={isSidebarOpen} 
         isMobile={isMobile} 

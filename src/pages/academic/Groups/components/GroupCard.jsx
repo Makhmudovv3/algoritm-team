@@ -14,7 +14,7 @@ export function GroupCard({ group, teacherName, courseName, roomName, onView, on
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-150 cursor-pointer group overflow-hidden"
+      className="bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-150 cursor-pointer group"
       onClick={() => onView(group)}
     >
       {/* Header */}
@@ -75,7 +75,7 @@ export function GroupCard({ group, teacherName, courseName, roomName, onView, on
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 bg-slate-50/50">
+      <div className="px-4 py-3 bg-slate-50/50 rounded-b-xl">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[11px] text-slate-400 flex items-center gap-1">
             <Users className="h-3 w-3" /> O'quvchilar

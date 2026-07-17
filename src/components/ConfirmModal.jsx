@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
+export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Ha, o'chirish", confirmColor = "bg-red-600 hover:bg-red-700" }) {
   if (!isOpen) return null;
 
   return (
@@ -26,9 +26,9 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
                 onConfirm();
                 onClose();
               }} 
-              className="flex-1 px-4 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-semibold transition-colors shadow-sm cursor-pointer"
+              className={`flex-1 px-4 py-2.5 text-white ${confirmColor} rounded-xl font-semibold transition-colors shadow-sm cursor-pointer`}
             >
-              Ha, o'chirish
+              {confirmText}
             </button>
           </div>
         </div>

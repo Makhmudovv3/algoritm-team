@@ -87,7 +87,7 @@ const DropdownMenuContent = React.forwardRef(({ className, align = "right", chil
           exit={{ opacity: 0, scale: 0.95, y: -5 }}
           transition={{ duration: 0.15 }}
           className={cn(
-            "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-xl border border-slate-200 bg-white p-1 text-slate-900 shadow-lg   ",
+            "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-xl border border-slate-200 bg-white p-1 text-slate-900 shadow-lg dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200",
             aligns[align],
             className
           )}
@@ -122,7 +122,7 @@ const DropdownMenuItem = React.forwardRef(({ className, children, inset, onSelec
         }
       }}
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-sm outline-none transition-colors hover:bg-slate-100 focus:bg-slate-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50  ",
+        "relative flex cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-sm outline-none transition-colors hover:bg-slate-100 focus:bg-slate-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800",
         inset && "pl-8",
         className
       )}
@@ -137,7 +137,7 @@ DropdownMenuItem.displayName = 'DropdownMenuItem';
 const DropdownMenuSeparator = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-slate-100 ", className)}
+    className={cn("-mx-1 my-1 h-px bg-slate-100 dark:bg-slate-800", className)}
     {...props}
   />
 ));
@@ -147,7 +147,7 @@ const DropdownMenuLabel = React.forwardRef(({ className, inset, ...props }, ref)
   <div
     ref={ref}
     className={cn(
-      "px-2 py-1.5 text-xs font-semibold text-slate-500 ",
+      "px-2 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400",
       inset && "pl-8",
       className
     )}
