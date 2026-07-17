@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 import AttendanceHeader from './components/AttendanceHeader';
 import AttendanceStats from './components/AttendanceStats';
@@ -210,7 +211,7 @@ export default function Attendance() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Sana</label>
-              <Input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              <CustomDatePicker required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Holat</label>

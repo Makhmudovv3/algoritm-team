@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Modal } from '@/components/ui/modal';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export default function StudentTransfer() {
   const [transfers, setTransfers] = useState([]);
@@ -203,7 +204,7 @@ export default function StudentTransfer() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700  mb-1">O'tkazish sanasi</label>
-            <Input required type="date" value={formData.transfer_date} onChange={e => setFormData({...formData, transfer_date: e.target.value})} />
+            <CustomDatePicker required value={formData.transfer_date} onChange={e => setFormData({...formData, transfer_date: e.target.value})} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700  mb-1">Sabab (ixtiyoriy)</label>

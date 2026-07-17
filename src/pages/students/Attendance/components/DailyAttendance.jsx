@@ -6,6 +6,7 @@ import {
 import { TableContainer, SearchBar, EmptyTableState, AvatarInitials } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export default function DailyAttendance({ attendances, students, groups, isLoading }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,11 +47,10 @@ export default function DailyAttendance({ attendances, students, groups, isLoadi
           />
         </div>
         <div className="w-full sm:w-44">
-          <input
-            type="date"
+          <CustomDatePicker
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="h-8 w-full px-3 text-[13px] border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 placeholder:text-slate-400 bg-white"
+            placeholder="Sana bo'yicha..."
           />
         </div>
       </div>

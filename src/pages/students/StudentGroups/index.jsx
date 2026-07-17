@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
+import ConfirmModal from '@/components/ConfirmModal';
 import { PageHeader, TableContainer, SearchBar, EmptyTableState } from '@/components/ui/page-header';
 
 export default function StudentGroups() {
@@ -227,7 +229,7 @@ export default function StudentGroups() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700  mb-1">Qo'shilgan sana</label>
-            <Input required type="date" value={formData.joined_date} onChange={e => setFormData({...formData, joined_date: e.target.value})} />
+            <CustomDatePicker required value={formData.joined_date} onChange={e => setFormData({...formData, joined_date: e.target.value})} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700  mb-1">Status</label>
@@ -240,15 +242,11 @@ export default function StudentGroups() {
         </form>
       </Modal>
 
-      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
-        <div className="space-y-4">
-          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
-            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId} 
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

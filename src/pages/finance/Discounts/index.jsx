@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Modal } from '@/components/ui/modal';
+import ConfirmModal from '@/components/ConfirmModal';
 import { PageHeader, TableContainer, SearchBar, EmptyTableState } from '@/components/ui/page-header';
 
 export default function Discounts() {
@@ -226,15 +227,11 @@ export default function Discounts() {
         </form>
       </Modal>
 
-      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="O'chirishni tasdiqlaysizmi?">
-        <div className="space-y-4">
-          <p className="text-slate-600 ">Rostdan ham ushbu ma'lumotni o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="w-full" onClick={() => setDeleteConfirmId(null)}>Bekor qilish</Button>
-            <Button variant="destructive" className="w-full" onClick={handleDeleteConfirm}>O'chirish</Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId} 
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

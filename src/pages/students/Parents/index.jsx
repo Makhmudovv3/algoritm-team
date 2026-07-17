@@ -3,7 +3,7 @@ import { api } from '../../../services/api';
 import { ParentsHeader } from './components/ParentsHeader';
 import { ParentsTable } from './components/ParentsTable';
 import { ParentModal } from './components/ParentModal';
-import { ParentDeleteModal } from './components/ParentDeleteModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import { ParentProfileDrawer } from './components/ParentProfileDrawer';
 
 export default function Parents() {
@@ -108,7 +108,7 @@ export default function Parents() {
         isEditing={!!editingId}
       />
 
-      <ParentDeleteModal 
+      <ConfirmModal 
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={handleDeleteConfirm}

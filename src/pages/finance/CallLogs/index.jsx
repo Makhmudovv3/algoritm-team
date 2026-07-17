@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
 import { PageHeader, TableContainer, SearchBar, EmptyTableState, AvatarInitials } from '@/components/ui/page-header';
 
 export default function CallLogs() {
@@ -120,7 +121,7 @@ export default function CallLogs() {
         title="Qo'ng'iroqlar"
         description="Mijozlar bilan aloqa jurnali"
         actions={
-          <Button onClick={() => handleOpenModal()} className="bg-slate-900 hover:bg-slate-800 text-white">
+          <Button onClick={() => handleOpenModal()}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Yangi qo'ng'iroq
           </Button>
@@ -223,7 +224,7 @@ export default function CallLogs() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700  mb-1">Qo'ng'iroq sanasi</label>
-              <Input required type="date" value={formData.call_date} onChange={e => setFormData({...formData, call_date: e.target.value})} />
+              <CustomDatePicker required value={formData.call_date} onChange={e => setFormData({...formData, call_date: e.target.value})} />
             </div>
           </div>
           <div>

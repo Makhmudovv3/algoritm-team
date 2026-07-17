@@ -5,7 +5,7 @@ import BranchesHeader from './components/BranchesHeader';
 import BranchesStats from './components/BranchesStats';
 import BranchesGrid from './components/BranchesGrid';
 import BranchFormModal from './components/BranchFormModal';
-import DeleteConfirmModal from './components/DeleteConfirmModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import BranchDetailsDrawer from './components/BranchDetailsDrawer';
 
 export default function Branches() {
@@ -117,7 +117,7 @@ export default function Branches() {
         editingId={editingId}
       />
 
-      <DeleteConfirmModal 
+      <ConfirmModal 
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={handleDeleteConfirm}

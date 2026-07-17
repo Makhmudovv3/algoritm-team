@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export function StudentFormModal({
   isOpen, onClose, editingId,
@@ -35,12 +36,13 @@ export function StudentFormModal({
                 placeholder="Aliyev Vali Sobirovich"
               />
             </div>
-            <Input 
-              label="Tug'ilgan sana" 
-              type="date" 
-              value={formData.birthday || ''}
-              onChange={e => setFormData({ ...formData, birthday: e.target.value })}
-            />
+            <div className="w-full space-y-1">
+              <label className="block text-[12px] font-medium text-slate-600">Tug'ilgan sana</label>
+              <CustomDatePicker 
+                value={formData.birthday || ''}
+                onChange={e => setFormData({ ...formData, birthday: e.target.value })}
+              />
+            </div>
             <Select 
               label="Jinsi" 
               placeholder="Tanlang" 

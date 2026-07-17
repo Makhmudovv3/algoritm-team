@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
 
 export default function LessonsFormModal({ isOpen, onClose, onSave, formData, setFormData, groupOptions, statusOptions, editingId }) {
   const handleSubmit = (e) => {
@@ -23,12 +24,10 @@ export default function LessonsFormModal({ isOpen, onClose, onSave, formData, se
         </div>
         <div>
           <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Dars sanasi</label>
-          <Input 
+          <CustomDatePicker 
             required 
-            type="date" 
             value={formData.date} 
             onChange={e => setFormData({...formData, date: e.target.value})} 
-            className="h-8 text-[13px] shadow-sm"
           />
         </div>
         <div>

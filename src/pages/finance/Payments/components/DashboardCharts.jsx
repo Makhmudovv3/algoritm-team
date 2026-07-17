@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardHeader } from '@/components/ui/card';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
 
 export default function DashboardCharts({ payments = [] }) {
   const monthlyData = useMemo(() => {
@@ -42,11 +42,13 @@ export default function DashboardCharts({ payments = [] }) {
         <div className="p-6 flex-1 min-h-[250px]">
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val >= 1000 ? val / 1000 + 'k' : val}`} />
-                <Tooltip cursor={{fill: 'transparent'}} formatter={(value) => [new Intl.NumberFormat('uz-UZ').format(value) + ' UZS', 'Tushum']} />
-                <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <BarChart data={monthlyData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tickMargin={12} tick={{ fill: '#64748B', fontWeight: 500 }} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val >= 1000 ? val / 1000 + 'k' : val}`} tickMargin={12} tick={{ fill: '#64748B', fontWeight: 500 }} />
+                <Tooltip cursor={{fill: 'transparent'}} formatter={(value) => [new Intl.NumberFormat('uz-UZ').format(value) + ' UZS', 'Tushum']} contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }} />
+                <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={48} />
               </BarChart>
             </ResponsiveContainer>
           ) : (

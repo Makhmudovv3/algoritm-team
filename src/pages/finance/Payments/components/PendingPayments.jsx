@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/ui/date-picker';
 import { api } from '../../../../services/api';
 
 export default function PendingPayments() {
@@ -159,9 +160,8 @@ export default function PendingPayments() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Qaytarish / To'lash muddati</label>
-            <Input 
+            <CustomDatePicker 
               required 
-              type="date" 
               value={formData.due_date} 
               onChange={e => setFormData({...formData, due_date: e.target.value})} 
             />
