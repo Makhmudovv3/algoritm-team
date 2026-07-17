@@ -10,6 +10,7 @@ import { StudentsTable } from './components/StudentsTable';
 import { StudentProfileDrawer } from './components/StudentProfileDrawer';
 import { StudentFormModal } from './components/StudentFormModal';
 import { StudentDeleteDialog } from './components/StudentDeleteDialog';
+import AlertModal from '@/components/AlertModal';
 
 export default function Students() {
   // Data State
@@ -17,6 +18,7 @@ export default function Students() {
   const [branches, setBranches] = useState([]);
   const [parents, setParents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [alertMessage, setAlertMessage] = useState('');
 
   // Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -229,7 +231,7 @@ export default function Students() {
       await fetchData();
     } catch (err) {
       console.error("Import xatosi:", err);
-      alert("Faylni o'qishda xatolik yuz berdi. Iltimos, to'g'ri Excel fayl yuklang.");
+      setAlertMessage("Faylni o'qishda xatolik yuz berdi. Iltimos, to'g'ri Excel fayl yuklang.");
     } finally {
       setIsLoading(false);
     }
@@ -277,6 +279,12 @@ export default function Students() {
 
       <StudentDeleteDialog 
         isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} onConfirm={handleDeleteConfirm} 
+      />
+
+      <AlertModal 
+        isOpen={!!alertMessage} 
+        onClose={() => setAlertMessage('')} 
+        message={alertMessage} 
       />
     </div>
   );

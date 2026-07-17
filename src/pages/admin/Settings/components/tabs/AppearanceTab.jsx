@@ -1,11 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'react-toastify';
 
 export function AppearanceTab() {
-  const [theme, setTheme] = useState('system');
+  const [theme, setTheme] = useState(
+    localStorage.getItem('theme') || 'light'
+  );
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    
+    let themeName = '';
+    if (newTheme === 'light') themeName = "Yorug' mavzu";
+    if (newTheme === 'dark') themeName = "Qorong'u mavzu";
+    if (newTheme === 'system') themeName = "Tizim sozlamasi";
+    
+    toast.success(`${themeName} faollashtirildi`);
+  };
 
   return (
     <div className="space-y-6">
@@ -18,7 +45,7 @@ export function AppearanceTab() {
         <h3 className="text-sm font-medium text-slate-900  mb-4">Mavzu (Theme)</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button 
-            onClick={() => setTheme('light')}
+            onClick={() => handleThemeChange('light')}
             className={cn(
               "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all",
               theme === 'light' ? "border-indigo-600 bg-indigo-50/50 " : "border-slate-200  hover:border-slate-300 "
@@ -29,7 +56,7 @@ export function AppearanceTab() {
           </button>
 
           <button 
-            onClick={() => setTheme('dark')}
+            onClick={() => handleThemeChange('dark')}
             className={cn(
               "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all",
               theme === 'dark' ? "border-indigo-600 bg-indigo-50/50 " : "border-slate-200  hover:border-slate-300 "
@@ -40,7 +67,7 @@ export function AppearanceTab() {
           </button>
 
           <button 
-            onClick={() => setTheme('system')}
+            onClick={() => handleThemeChange('system')}
             className={cn(
               "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all",
               theme === 'system' ? "border-indigo-600 bg-indigo-50/50 " : "border-slate-200  hover:border-slate-300 "

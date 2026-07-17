@@ -33,6 +33,9 @@ const Ratings = React.lazy(() => import('./pages/students/Ratings'));
 const StudentGroups = React.lazy(() => import('./pages/students/StudentGroups'));
 const Students = React.lazy(() => import('./pages/students/Students'));
 
+// Auth
+const Login = React.lazy(() => import('./pages/auth/Login'));
+
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
@@ -43,6 +46,8 @@ const PageLoader = () => (
 function App() {
   return (
     <Routes>
+      <Route path="/login" element={<Suspense fallback={<PageLoader />}><Login /></Suspense>} />
+      
       <Route element={<MainLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />

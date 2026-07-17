@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Modal } from '@/components/ui/modal';
 import CustomSelect from '@/components/CustomSelect';
+import AlertModal from '@/components/AlertModal';
 
 export default function StudentTransfer() {
   const [transfers, setTransfers] = useState([]);
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [alertMessage, setAlertMessage] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -65,7 +67,7 @@ export default function StudentTransfer() {
     e.preventDefault();
     if (!formData.student_id || !formData.from_group_id || !formData.to_group_id || !formData.transfer_date) return;
     if (formData.from_group_id === formData.to_group_id) {
-      alert("Yangi guruh eskisidan farq qilishi kerak.");
+      setAlertMessage("Yangi guruh eskisidan farq qilishi kerak.");
       return;
     }
 
@@ -215,6 +217,12 @@ export default function StudentTransfer() {
           </div>
         </form>
       </Modal>
+
+      <AlertModal 
+        isOpen={!!alertMessage} 
+        onClose={() => setAlertMessage('')} 
+        message={alertMessage} 
+      />
     </div>
   );
 }

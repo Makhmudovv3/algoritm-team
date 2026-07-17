@@ -12,7 +12,7 @@ const Table = React.forwardRef(({ className, ...props }, ref) => (
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("border-b border-border/80 bg-slate-50/50 ", className)} {...props} />
+  <thead ref={ref} className={cn("border-b border-border/80 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-800", className)} {...props} />
 ))
 TableHeader.displayName = "TableHeader"
 
@@ -36,7 +36,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-border/40 transition-colors hover:bg-slate-50/60 .02] data-[state=selected]:bg-slate-100",
+      "border-b border-border/40 transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/60 data-[state=selected]:bg-slate-100 dark:data-[state=selected]:bg-slate-800 dark:border-slate-800",
       className
     )}
     {...props} />
@@ -47,7 +47,7 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
-      "h-10 px-4 text-left align-middle text-[12px] font-semibold text-slate-500 uppercase tracking-wider  [&:has([role=checkbox])]:pr-0",
+      "h-10 px-4 text-left align-middle text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider  [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props} />
@@ -57,7 +57,7 @@ TableHead.displayName = "TableHead"
 const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={cn("p-4 align-middle text-[13px] text-slate-700  [&:has([role=checkbox])]:pr-0", className)}
+    className={cn("p-4 align-middle text-[13px] text-slate-700 dark:text-slate-300 [&:has([role=checkbox])]:pr-0", className)}
     {...props} />
 ))
 TableCell.displayName = "TableCell"
